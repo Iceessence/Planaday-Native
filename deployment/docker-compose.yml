@@ -1,0 +1,73 @@
+name: planaday-native-sync
+
+# Planaday Native Optional Self-Hosted Sync Server (Revision 4.0)
+# Owner Decision O-004: Fresh independent PostgreSQL + blob + backup volumes.
+# PostgreSQL is STRICTLY confined to the internal bridge network (zero public host port).
+# Default HTTP port 8420 avoids any conflict with legacy installations.
+
+services:
+  postgres:
+    image: postgres:17.2-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${PLANADAY_PG_DB:-planaday_native}
+      POSTGRES_USER: ${PLANADAY_PG_USER:-planaday_app}
+      POSTGRES_PASSWORD: ${PLANADAY_PG_PASSWORD:?Set PLANADAY_PG_PASSWORD in .env}
+    volumes:
+      - planaday_native_pgdata:/var/lib/postgresql/data
+    networks:
+      - planaday_internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PLANADAY_PG_USER:-planaday_app} -d ${PLANADAY_PG_DB:-planaday_native}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  sync-server:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PLANADAY_PORT: "8420"
+      PLANADAY_DB_ENGINE: "postgres"
+      PLANADAY_JDBC_URL: "jdbc:postgresql://postgres:5432/${PLANADAY_PG_DB:-planaday_native}"
+      PLANADAY_DB_USER: ${PLANADAY_PG_USER:-planaday_app}
+      PLANADAY_DB_PASSWORD: ${PLANADAY_PG_PASSWORD:?Set PLANADAY_PG_PASSWORD in .env}
+      PLANADAY_BLOB_DIR: "/var/lib/planaday-native/blobs"
+      PLANADAY_BACKUP_DIR: "/var/lib/planaday-native/backups"
+      PLANADAY_ALLOWED_OUTBOUND_HOSTS: ${PLANADAY_ALLOWED_OUTBOUND_HOSTS:-}
+    ports:
+      - "${PLANADAY_BIND_ADDR:-127.0.0.1}:${PLANADAY_HOST_PORT:-8420}:8420"
+    volumes:
+      - planaday_native_blobs:/var/lib/planaday-native/blobs
+      - planaday_native_backups:/var/lib/planaday-native/backups
+    networks:
+      - planaday_internal
+      - planaday_edge
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+networks:
+  planaday_internal:
+    internal: true
+  planaday_edge:
+
+volumes:
+  planaday_native_pgdata:
+  planaday_native_blobs:
+  planaday_native_backups:
