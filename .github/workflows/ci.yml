@@ -1,0 +1,37 @@
+name: Planaday Native CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  greenfield-and-traceability:
+    name: Greenfield Separation & Traceability Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify Greenfield Provenance, Zero Legacy Duplicates & Traceability Counts
+        run: python3 scripts/verify_greenfield_and_traceability.py
+
+  build-and-test:
+    name: Build & Test KMP Core, Desktop, Server & Android
+    needs: greenfield-and-traceability
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Run All Unit, Persistence, Sync, Security & Integration Tests
+        run: ./gradlew check --stacktrace
+      - name: Assemble Android Debug APK (API 36, minSdk 29)
+        run: ./gradlew :apps:android:assembleDebug --stacktrace
+      - name: Validate Docker Compose Configuration
+        run: docker compose -f deployment/docker-compose.yml config

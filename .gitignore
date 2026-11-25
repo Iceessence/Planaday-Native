@@ -1,0 +1,28 @@
+# Gradle & IDE
+.gradle/
+**/build/
+local.properties
+.idea/
+*.iml
+.kotlin/
+
+# Runtime databases, blobs, backups & temp test outputs (NEVER commit data!)
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.jks
+*.keystore
+*.p12
+*.pfx
+.env
+.env.*
+!deployment/.env.example
+
+# OS & Logs
+.DS_Store
+Thumbs.db
+*.log
+hs_err_pid*.log
