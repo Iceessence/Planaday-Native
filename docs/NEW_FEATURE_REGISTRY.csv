@@ -1,51 +1,51 @@
 N_ID,Proposal,Mapped_Overlap_IDs,Target_Modules,Feasibility,Safety_Policy_Notes,Status,Owner_Approval
 N-001,Universal linked-record picker and reverse references with typed integrity and permissions,PF-09; R-0389,core/model; core/persistence; core/usecases,HIGH,None,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-002,"Custom fields with computed values, validators and schema versions",PF-36; R-0205; R-0290,core/model; core/persistence; features/customization,HIGH,None,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-003,Universal templates with parameter prompts and safe cloning,PF-14; R-0207; R-0289,core/usecases; features/customization,HIGH,Untrusted template guard,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
+N-002,"Custom fields with computed values, validators and schema versions",PF-36; R-0205; R-0290,core/model; core/persistence; features/customization,HIGH,None,FUNCTIONALLY_IMPLEMENTED,IN_SCOPE_REV4_TARGET
+N-003,Universal templates with parameter prompts and safe cloning,PF-14; R-0207; R-0289,core/usecases; features/customization,HIGH,Untrusted template guard,FUNCTIONALLY_IMPLEMENTED,IN_SCOPE_REV4_TARGET
 N-004,Command palette plus user-defined keyboard shortcuts,PF-38; R-0379,core/usecases; apps/desktop; apps/android,HIGH,None,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-005,Workspace layout profiles with import/export and recovery,PF-14; PF-44; R-0203,features/customization; core/interchange,HIGH,Schema validation on import,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
+N-005,Workspace layout profiles with import/export and recovery,PF-14; PF-44; R-0203,features/customization; core/interchange,HIGH,Schema validation on import,FUNCTIONALLY_IMPLEMENTED,IN_SCOPE_REV4_TARGET
 N-006,"Full-text search across authorized notes, files and metadata with saved filters",PF-10; R-0388,core/search; core/persistence,HIGH,Workspace ACL enforced per query,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-007,Universal reporting/pivot engine with drill-down and explainable calculations,PF-39; C-0012,features/reports; core/math,HIGH,Workspace ACL enforced,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
+N-007,Universal reporting/pivot engine with drill-down and explainable calculations,PF-39; C-0012,features/reports; core/math,HIGH,Workspace ACL enforced,FUNCTIONALLY_IMPLEMENTED,IN_SCOPE_REV4_TARGET
 N-008,Cross-feature dependency graph and change impact preview,PF-09; PF-13; R-0036,core/domain; features/projects,HIGH,Cycle prevention required,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
 N-009,"Record-level audit history, compare and selective recovery",PF-01; R-0169; R-0238,core/persistence; core/documents,HIGH,Immutable evidence records protected,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-010,"Offline universal capture with share-sheet, camera, voice and inbox dedup",PF-37; R-0221,core/usecases; apps/android; apps/desktop,HIGH,OS permissions handled gracefully,IMPLEMENTED,IN_SCOPE_REV4_TARGET
-N-011,Scheduling constraint solver with energy/context/travel/resource availability,PF-11; PF-12; R-0051..R-0053,features/planning,HIGH,Never auto-deletes user events,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-012,"What-if schedules, compare alternatives and undo",PF-11; R-0052,features/planning; core/usecases,HIGH,Transactional apply with undo,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-013,Focus dashboard with estimate calibration and privacy,PF-49; R-0047..R-0049,features/planning; features/time,HIGH,Local-only by default,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
+N-010,"Offline universal capture with share-sheet, camera, voice and inbox dedup",PF-37; R-0221,core/usecases; apps/android; apps/desktop,HIGH,OS permissions handled gracefully,BLOCKED,IN_SCOPE_REV4_TARGET
+N-011,Scheduling constraint solver with energy/context/travel/resource availability,PF-11; PF-12; R-0051..R-0053,features/planning,HIGH,Never auto-deletes user events,ENGINE_IMPLEMENTED,IN_SCOPE_REV4_TARGET
+N-012,"What-if schedules, compare alternatives and undo",PF-11; R-0052,features/planning; core/usecases,HIGH,Transactional apply with undo,ENGINE_IMPLEMENTED,IN_SCOPE_REV4_TARGET
+N-013,Focus dashboard with estimate calibration and privacy,PF-49; R-0047..R-0049,features/planning; features/time,HIGH,Local-only by default,FUNCTIONALLY_IMPLEMENTED,IN_SCOPE_REV4_TARGET
 N-014,Calendar subscription cache and duplicate-safe ICS import,R-0011; C-0060,core/interchange; features/planning,HIGH,Egress SSRF policy + dated offline cache,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-015,Widgets and quick actions where OS supports them,PF-37,apps/android; apps/desktop,HIGH,Android Glance/AppWidget + Windows tray/jump list,IMPLEMENTED,IN_SCOPE_REV4_TARGET
+N-015,Widgets and quick actions where OS supports them,PF-37,apps/android; apps/desktop,HIGH,Android Glance/AppWidget + Windows tray/jump list,BLOCKED,IN_SCOPE_REV4_TARGET
 N-016,"Large-document editor with outline, citations, footnotes, TOC, styles and cross-document links",PF-07; R-0234..R-0237,core/documents; features/knowledge,HIGH,Benchmarked at 100k words,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-017,Document annotation and OCR with local model option and manual fallback,PF-22; R-0286,core/documents; features/files,MEDIUM,Optional local OCR engine; manual fallback offline,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
+N-017,Document annotation and OCR with local model option and manual fallback,PF-22; R-0286,core/documents; features/files,MEDIUM,Optional local OCR engine; manual fallback offline,ENGINE_IMPLEMENTED,IN_SCOPE_REV4_TARGET
 N-018,DOCX/EPUB structured export and fidelity checks,PF-29; PF-50; PF-54,core/interchange; features/creative,HIGH,Published feature fidelity matrix,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
 N-019,Portable notebook and markdown interoperability,PF-08; R-0232,core/interchange; features/knowledge,HIGH,Path-traversal & sanitizer checks,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
 N-020,Universal evidence snapshots with source provenance,PF-40; R-0168,core/persistence; features/office; features/lab,HIGH,Immutable SHA-256 snapshot digest,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-021,Household shared shopping and conflict-safe quantities,PF-15; PF-18; C-0091,features/kitchen; core/sync-protocol,HIGH,Delta-quantity conflict merge policy,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-022,Budget forecasting and configurable account-independent categories,PF-16; C-0044,features/life; core/math,HIGH,Exact decimal arithmetic; no auto bank transfers,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-023,Inventory barcode scanning and expiry reminders,PF-15; C-0036,features/kitchen; apps/android; core/notifications,HIGH,Camera permission fallback to manual barcode,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-024,"Media collections with user-defined scoring, progress and lists",PF-20; C-0045,features/life,HIGH,None,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-025,Study spaced repetition with evidence/learning goals,PF-21; C-0029,features/life; features/knowledge,HIGH,None,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
+N-021,Household shared shopping and conflict-safe quantities,PF-15; PF-18; C-0091,features/kitchen; core/sync-protocol,HIGH,Delta-quantity conflict merge policy,FUNCTIONALLY_IMPLEMENTED,IN_SCOPE_REV4_TARGET
+N-022,Budget forecasting and configurable account-independent categories,PF-16; C-0044,features/life; core/math,HIGH,Exact decimal arithmetic; no auto bank transfers,FUNCTIONALLY_IMPLEMENTED,IN_SCOPE_REV4_TARGET
+N-023,Inventory barcode scanning and expiry reminders,PF-15; C-0036,features/kitchen; apps/android; core/notifications,HIGH,Camera permission fallback to manual barcode,BLOCKED,IN_SCOPE_REV4_TARGET
+N-024,"Media collections with user-defined scoring, progress and lists",PF-20; C-0045,features/life,HIGH,None,FUNCTIONALLY_IMPLEMENTED,IN_SCOPE_REV4_TARGET
+N-025,Study spaced repetition with evidence/learning goals,PF-21; C-0029,features/life; features/knowledge,HIGH,None,FUNCTIONALLY_IMPLEMENTED,IN_SCOPE_REV4_TARGET
 N-026,Lab configurable method worksheets and uncertainty reference fixtures,PF-24; PF-56; R-0359..R-0360,features/lab; core/math,HIGH,Non-regulatory aid disclaimer mandatory,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-027,Instrument maintenance and consumable lot traceability,PF-23; PF-25; R-0138; R-0148,features/lab,HIGH,Lab workspace ACL,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
+N-027,Instrument maintenance and consumable lot traceability,PF-23; PF-25; R-0138; R-0148,features/lab,HIGH,Lab workspace ACL,FUNCTIONALLY_IMPLEMENTED,IN_SCOPE_REV4_TARGET
 N-028,Configurable sample workflow transitions with authorized sign-off,PF-23; R-0133..R-0137,features/lab; core/security,HIGH,Immutable custody log; non-accredited aid,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-029,Lot/capacity dashboards and report templates,PF-25; R-0330; R-0370,features/lab; features/reports,HIGH,Lab workspace ACL,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
+N-029,Lot/capacity dashboards and report templates,PF-25; R-0330; R-0370,features/lab; features/reports,HIGH,Lab workspace ACL,FUNCTIONALLY_IMPLEMENTED,IN_SCOPE_REV4_TARGET
 N-030,Lab data export with method version and raw-result provenance (not regulatory certification),PF-24; PF-56; R-0171,features/lab; core/interchange,HIGH,Explicit non-LIMS notice included,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-031,Project Gantt/timeline and critical dependency paths,PF-13; R-0288,features/projects,HIGH,Cycle-free critical path solver,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-032,Reusable game balance scenario simulator with deterministic seeds,PF-26; R-0306; R-0470,features/creative; core/math,HIGH,Seeded PRNG determinism,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-033,Manuscript scene/character continuity graph and editorial workflow,PF-28; PF-29; R-0319,features/creative; core/domain,HIGH,None,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-034,Asset provenance and license registry,PF-27; R-0287,features/files; features/creative,HIGH,None,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
+N-031,Project Gantt/timeline and critical dependency paths,PF-13; R-0288,features/projects,HIGH,Cycle-free critical path solver,FUNCTIONALLY_IMPLEMENTED,IN_SCOPE_REV4_TARGET
+N-032,Reusable game balance scenario simulator with deterministic seeds,PF-26; R-0306; R-0470,features/creative; core/math,HIGH,Seeded PRNG determinism,FUNCTIONALLY_IMPLEMENTED,IN_SCOPE_REV4_TARGET
+N-033,Manuscript scene/character continuity graph and editorial workflow,PF-28; PF-29; R-0319,features/creative; core/domain,HIGH,None,FUNCTIONALLY_IMPLEMENTED,IN_SCOPE_REV4_TARGET
+N-034,Asset provenance and license registry,PF-27; R-0287,features/files; features/creative,HIGH,None,FUNCTIONALLY_IMPLEMENTED,IN_SCOPE_REV4_TARGET
 N-035,"Visual automation builder with dry run, impact preview and loop guard",PF-34; C-0051,core/automation; features/customization,HIGH,Human approval on sensitive/destructive ops,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-036,Opt-in local assistance provider interface with no external AI required,PF-35,core/platform; features/customization,HIGH,Explicit owner opt-in; egress guard; no auto-commit,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-037,Local privacy-preserving recommendation/ranking with user-controlled learning/reset,PF-49; PF-35,features/planning; core/domain,HIGH,100% local state + 1-click reset,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-038,"Extension SDK with capability manifest, version compatibility and no arbitrary host execution",PF-36; PF-45,core/domain; core/security,MEDIUM,Declarative capabilities only; no arbitrary host code,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-039,Safe template marketplace/import format without mandated network or purchases,PF-45,core/interchange; core/security,HIGH,Schema + sanitizer validation; offline import,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-040,"External integration adapter registry (calendars, files, authorized feeds) with scope and revocation",PF-48; PD-014,core/platform; core/security,HIGH,Egress SSRF guard + explicit revocation,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
+N-036,Opt-in local assistance provider interface with no external AI required,PF-35,core/platform; features/customization,HIGH,Explicit owner opt-in; egress guard; no auto-commit,ENGINE_IMPLEMENTED,IN_SCOPE_REV4_TARGET
+N-037,Local privacy-preserving recommendation/ranking with user-controlled learning/reset,PF-49; PF-35,features/planning; core/domain,HIGH,100% local state + 1-click reset,ENGINE_IMPLEMENTED,IN_SCOPE_REV4_TARGET
+N-038,"Extension SDK with capability manifest, version compatibility and no arbitrary host execution",PF-36; PF-45,core/domain; core/security,MEDIUM,Declarative capabilities only; no arbitrary host code,ENGINE_IMPLEMENTED,IN_SCOPE_REV4_TARGET
+N-039,Safe template marketplace/import format without mandated network or purchases,PF-45,core/interchange; core/security,HIGH,Schema + sanitizer validation; offline import,ENGINE_IMPLEMENTED,IN_SCOPE_REV4_TARGET
+N-040,"External integration adapter registry (calendars, files, authorized feeds) with scope and revocation",PF-48; PD-014,core/platform; core/security,HIGH,Egress SSRF guard + explicit revocation,ENGINE_IMPLEMENTED,IN_SCOPE_REV4_TARGET
 N-041,Selective sync by workspace and attachment size policy,PF-02; PF-04,core/sync-client; core/sync-protocol,HIGH,Filtered-out != deletion,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
 N-042,Transfer inspector and conflict resolution workspace,PF-51; PF-47,core/sync-client; apps/android; apps/desktop,HIGH,Never discards conflict copies,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
 N-043,Local application health dashboard with test backup/restore,PF-42; PF-47; PF-52,core/persistence; features/customization,HIGH,Test restore runs in isolated temp DB,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
 N-044,Portable open data export manifest with no vendor lock-in,PF-42; PF-08,core/interchange,HIGH,Documented open JSON+SHA-256+standard formats,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
 N-045,Offline desktop entitlement with signed updates and read/export survival,Master §10,core/security; apps/desktop; distribution/,HIGH,Public-key offline verification; data always readable,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
 N-046,Secure sharing bundles with explicit ACL/recovery,PF-04; PF-18,core/interchange; core/security,HIGH,Authenticated encryption + explicit ACL,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
-N-047,Multi-user role templates with audit trails,PF-04; PF-39,server/auth; core/security,HIGH,Deny-by-default server ACL,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
+N-047,Multi-user role templates with audit trails,PF-04; PF-39,server/auth; core/security,HIGH,Deny-by-default server ACL,FUNCTIONALLY_IMPLEMENTED,IN_SCOPE_REV4_TARGET
 N-048,Encrypted export and documented key recovery,PF-42; Master §5,core/security; core/interchange,HIGH,AES-256-GCM + PBKDF2/Argon2 + user recovery key,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
 N-049,Accessibility customization and localization extension points,PF-06; Master §7,core/design-tokens; apps/android; apps/desktop,HIGH,"RTL, high contrast, reduced motion, 48dp targets",DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET
 N-050,Diagnostic benchmark suite and user-controlled support package,PF-47; PF-52; Master §9,tests/performance; core/platform,HIGH,Scrubs personal data & secrets before export,DEVELOPER_TESTED,IN_SCOPE_REV4_TARGET

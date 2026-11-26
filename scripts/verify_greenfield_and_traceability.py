@@ -108,7 +108,12 @@ def main():
             if len(h) == 64:
                 legacy_hashes[h] = p
 
-    # 2. Verify 652 unique requirement IDs
+    # 2. Verify 652 unique requirement IDs & strict 10-status taxonomy
+    valid_10_statuses = {
+        "SPECIFIED", "ENGINE_IMPLEMENTED", "UI_IMPLEMENTED", "FUNCTIONALLY_IMPLEMENTED",
+        "DEVELOPER_TESTED", "PLATFORM_TESTED", "INDEPENDENTLY_ACCEPTED",
+        "BLOCKED", "FAILED", "NOT_APPLICABLE",
+    }
     req_path = os.path.join(DOCS_DIR, "REQUIREMENT_TRACEABILITY.csv")
     if not os.path.exists(req_path):
         errors.append("Missing docs/REQUIREMENT_TRACEABILITY.csv")
@@ -124,8 +129,11 @@ def main():
         missing_req = (expected_r | expected_c) - unique_ids
         if missing_req:
             errors.append(f"Missing requirement IDs: {sorted(missing_req)[:10]}")
+        bad_req_st = [r.get("Requirement ID") for r in rows if r.get("New_Status", "").strip() not in valid_10_statuses]
+        if bad_req_st:
+            errors.append(f"Invalid 10-status value in REQUIREMENT_TRACEABILITY.csv for: {bad_req_st[:10]}")
 
-    # 3. Verify 56 unique PF IDs
+    # 3. Verify 56 unique PF IDs & strict 10-status taxonomy
     exp_path = os.path.join(DOCS_DIR, "EXPANSION_TRACEABILITY.csv")
     if not os.path.exists(exp_path):
         errors.append("Missing docs/EXPANSION_TRACEABILITY.csv")
@@ -136,8 +144,11 @@ def main():
         expected_pf = {f"PF-{i:02d}" for i in range(1, 57)}
         if len(rows) != 56 or pf_ids != expected_pf:
             errors.append(f"EXPANSION_TRACEABILITY.csv mismatch: rows={len(rows)}, missing={sorted(expected_pf - pf_ids)}")
+        bad_pf_st = [r.get("PF_ID") for r in rows if r.get("New_Status", "").strip() not in valid_10_statuses]
+        if bad_pf_st:
+            errors.append(f"Invalid 10-status value in EXPANSION_TRACEABILITY.csv for: {bad_pf_st[:10]}")
 
-    # 4. Verify 50 unique N-series IDs
+    # 4. Verify 50 unique N-series IDs & strict 10-status taxonomy
     n_path = os.path.join(DOCS_DIR, "NEW_FEATURE_REGISTRY.csv")
     if not os.path.exists(n_path):
         errors.append("Missing docs/NEW_FEATURE_REGISTRY.csv")
@@ -148,6 +159,9 @@ def main():
         expected_n = {f"N-{i:03d}" for i in range(1, 51)}
         if len(rows) != 50 or n_ids != expected_n:
             errors.append(f"NEW_FEATURE_REGISTRY.csv mismatch: rows={len(rows)}, missing={sorted(expected_n - n_ids)}")
+        bad_n_st = [r.get("N_ID") for r in rows if r.get("Status", "").strip() not in valid_10_statuses]
+        if bad_n_st:
+            errors.append(f"Invalid 10-status value in NEW_FEATURE_REGISTRY.csv for: {bad_n_st[:10]}")
 
     # 5. Verify 28 historical regression IDs in docs/KNOWN_ISSUES.md
     issues_path = os.path.join(DOCS_DIR, "KNOWN_ISSUES.md")

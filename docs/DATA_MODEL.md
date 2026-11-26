@@ -1,43 +1,45 @@
 # Planaday Native — Canonical Data Model (`DATA_MODEL.md`)
 
-**Schema Version:** `1` (Fresh greenfield v1 schema — Owner Decision O-004: zero legacy Planaday DB import)  
+**Schema Version:** `2` (Fresh greenfield v1 → additive Room KMP `MIGRATION_1_2` — Owner Decision O-004: zero legacy Planaday DB import)  
 **Client Storage Engine:** AndroidX Room KMP (`2.8.5`) + AndroidX SQLite Bundled (`2.6.2`) in WAL mode with `PRAGMA foreign_keys = ON` and FTS5.  
+**Exported Room Schemas:** `core/persistence/schemas/com.planaday.nativeapp.core.persistence.PlanadayDatabase/1.json` & `2.json`.  
 **Server Storage Engine:** PostgreSQL 17 (isolated internal Docker network) via `SyncServerRepository` abstraction.
 
 ---
 
 ## 1. Architectural Invariants
 
-1. **Single Canonical Identity:** Every user record has one stable UUIDv4 (`id`) stored in `record_index` plus its authoritative typed domain table. Showing a task across Today, Task Calendar, Kanban, Project, and Reports observes the **same** canonical `id` — never duplicating data across screens.
-2. **Typed Relational Core + Versioned Custom Extension:** Core high-query domains use strongly typed columns and foreign keys. User-defined fields and forward-compatible unknown fields use versioned `custom_schemas` / `custom_values` and explicit `schema_version` + `extra_json`.
-3. **Exact Precision:** Money (`amount_minor_units` or decimal text with explicit ISO-4217 currency) and analytical lab measurements never use lossy binary float money math. Temporal records store UTC ISO-8601 instants (`created_at`, `updated_at`) AND explicit wall-clock local date (`YYYY-MM-DD`), local time (`HH:MM`), floating flag, and IANA timezone (`time_zone`) for DST-safe calendar semantics.
-4. **Optimistic Concurrency & Atomic Outbox:** Every mutation runs inside one SQLite write transaction that checks `rev = expectedRev`, increments `rev`, updates typed table + `record_index` + FTS5 index, and appends an `outbox_ops` entry atomically.
-5. **Durable Record-Bound Drafts & Recoverable Trash:** Active editor sessions persist to `drafts` keyed by `(workspace_id, record_id, session_id)` (`PD-016` eliminated). Soft-deletes set `deleted_at` (30-day default retention in `trash_items`) with reference-counted attachment garbage collection.
+1. **Single Canonical Identity:** Every user record has one stable UUIDv4 (`id`) stored in `record_index` with strongly typed serialized payloads and indexed query columns. Showing a task across Today, Flow Calendar, Kanban, Projects, Physical Planner, and Reports observes the **same** canonical `id` — never duplicating data across screens.
+2. **Bounded Reactive & Keyset Queries (Update 2 §6):** Every feature subscribes to route-scoped Room `Flow`s (`observeByKind`, `observeScheduleWindow`, `observeTrash`, `observeDirtyDrafts`, `observeAutomationRuns`, `observeWorkspaceAttachments`). No screen triggers global workspace reloads. Large collections paginate in `O(log N)` using composite `(updated_at_utc, id)` keyset cursors rather than `OFFSET` scans.
+3. **Exact Precision & Wall-Clock Time Safety:** Money (`DecimalAmount` with ISO-4217 currency) and analytical lab measurements avoid lossy binary float money math. Temporal records store UTC ISO-8601 instants (`created_at_utc`, `updated_at_utc`) AND explicit local date/time + IANA timezone (`time_zone`) + indexed `schedule_start_iso` / `schedule_end_iso` columns for DST-safe indexed calendar range queries.
+4. **Optimistic Concurrency & Atomic Outbox:** Every mutation runs inside one Room immediate SQLite write transaction that checks `rev = expectedRev`, increments `rev`, updates `record_index` + FTS5 triggers, writes optional revision snapshots, and coalesces `outbox_ops` atomically.
+5. **Durable Record-Bound Drafts, Preferences & Encrypted Secrets:** Active editor sessions persist to `drafts` keyed by `(workspace_id, record_id, session_id)` (`PD-016` eliminated). User appearance/workspace preferences and stable `deviceId` persist in `app_preferences`. Sync bearer tokens are **never** stored in plaintext SQLite — they are encrypted via OS-protected vaults (`JvmProtectedCredentialVault` NTFS-ACL/0600 AES-256-GCM on desktop; `AndroidKeystoreCredentialVault` hardware/TEE AES-256-GCM on Android).
 6. **Immutable Evidence Records:** Laboratory QC, calibration measurements, and evidence snapshots preserve raw values immutably and store authorized corrections as append-only linked revisions.
 
 ---
 
-## 2. Client SQLite Tables (Schema v1)
+## 2. Client SQLite Tables & Schema v2 Indexes
 
-| Group | Tables | Primary Indexes |
+| Table | Purpose | Key Indexes (Schema v2) |
 |---|---|---|
-| **Identity & Access** | `workspaces`, `memberships`, `devices`, `family_profiles`, `app_settings` | `(workspace_id, user_id)` |
-| **Canonical Index & Graph** | `record_index`, `relations`, `search_fts` (FTS5 virtual table), `saved_views`, `dashboard_layouts`, `templates` | `(workspace_id, kind, updated_at)`, `(source_id, relation_kind)`, `(target_id, relation_kind)`, `(workspace_id, deleted_at)` |
-| **Drafts, History & Trash** | `drafts`, `revisions`, `evidence_snapshots`, `trash_items` | `(workspace_id, record_id, session_id)`, `(record_id, created_at DESC)` |
-| **Planning & Time** | `calendars`, `events`, `recurrence_rules`, `event_exceptions`, `tasks`, `task_dependencies`, `chores`, `chore_completions`, `habits`, `habit_logs`, `goals`, `goal_milestones`, `alarms`, `timers`, `time_ledger`, `notification_occurrences` | `(workspace_id, start_date, end_date)`, `(workspace_id, status, do_date, due_date)`, `(workspace_id, room, next_due_date)` |
-| **Knowledge & Diary** | `notebooks`, `notes`, `thoughts`, `diary_entries`, `life_events`, `countdowns` | `(workspace_id, notebook_id, parent_id, sort_order)`, `(workspace_id, entry_date)` |
-| **Physical Planner & Canvas** | `planner_books`, `planner_pages`, `planner_bookmarks`, `decor_items`, `whiteboards`, `canvas_objects` | `(book_id, page_number)`, `(book_id, sort_order)`, `(canvas_id, z_index)` |
-| **Kitchen & Personal Life** | `recipes`, `pantry_lots`, `meal_plans`, `food_logs`, `grocery_items`, `budget_envelopes`, `expenses`, `bills`, `medications`, `workouts`, `trips`, `people`, `home_assets`, `review_cards`, `media_items` | `(workspace_id, canonical_name, expiry_date)`, `(workspace_id, entry_date)`, `(workspace_id, envelope_id)` |
-| **Laboratory Operations** | `lab_samples`, `lab_custody_events`, `lab_subcontracts`, `lab_inventory`, `lab_orders`, `lab_budgets`, `lab_price_entries`, `lab_calibrations`, `lab_wet_nir_pairs`, `lab_meetings`, `lab_work_hours`, `lab_qms_items` | `(workspace_id, sample_code)`, `(workspace_id, due_date)`, `(workspace_id, analysis, commodity)` |
-| **Office, Projects & Creative** | `calc_saved`, `spreadsheets`, `presentations`, `projects`, `kanban_boards`, `kanban_cards`, `game_projects`, `game_entities`, `book_projects`, `book_chapters`, `book_entities`, `code_projects`, `code_snippets` | `(workspace_id, project_id)`, `(board_id, column_id, sort_order)` |
-| **Custom Schemas & Automation** | `custom_schemas`, `custom_records`, `automation_rules`, `automation_runs`, `decision_journal` | `(workspace_id, schema_id)`, `(rule_id, idempotency_key)` |
-| **Attachments & Files** | `attachments`, `attachment_refs`, `file_folders`, `photo_assets` | `UNIQUE(sha256)`, `(workspace_id, record_id, sha256)`, `(workspace_id, folder_id)` |
-| **Sync & Recovery** | `outbox_ops`, `applied_ops`, `conflicts`, `sync_cursors`, `backup_receipts`, `blob_transfer_receipts` | `(workspace_id, created_at)`, `UNIQUE(op_id)`, `(workspace_id, status)` |
+| `workspaces` | Workspace scopes (`PERSONAL`, `LABORATORY`, `OFFICE`, `HOUSEHOLD`, `CREATIVE`, `PRIVATE_DIARY`, `CUSTOM`) | `PRIMARY KEY (id)` |
+| `record_index` | Authoritative canonical records (`98` `RecordKind`s) with indexed `schedule_start_iso`, `schedule_end_iso` | `(workspace_id, kind, deleted_at_utc, updated_at_utc, id)` (O(log N) keyset), `(workspace_id, kind, deleted_at_utc, schedule_start_iso, schedule_end_iso)` (calendar window), `(workspace_id, deleted_at_utc)`, `(workspace_id, parent_id, sort_order)` |
+| `record_fts` (FTS5) | Full-text search virtual table kept synchronized via SQLite triggers with `workspace_id` filtering | FTS5 inverted index on `title`, `summary_text`, `tags_text` |
+| `relations` | Typed bidirectional cross-feature record links (`SCHEDULED_AS`, `LINKED_TO`, `DERIVED_FROM`, `PART_OF`, etc.) | `(workspace_id, source_id)`, `(workspace_id, target_id)` |
+| `drafts` | Record-bound editor draft recovery (`PD-016`, `PF-55`) | `PRIMARY KEY (workspace_id, record_id, session_id)` |
+| `revisions` | Point-in-time record & note revision snapshots with one-click restore | `(workspace_id, record_id, rev DESC)` |
+| `evidence_snapshots` | Immutable SHA-256 provenance snapshots (`N-020`) | `(workspace_id, source_record_id)` |
+| `planner_bookmarks` | Indexed relational planner bookmarks tested to `5,000+` rows (`R-0072`) | `(workspace_id, book_id, sort_order)` |
+| `attachments` & `attachment_refs` | Content-addressed SHA-256 blob metadata & reference-counted workspace ACL links (`PD-002`, `PD-015`) | `UNIQUE (sha256)`, `(workspace_id, record_id, sha256)` |
+| `outbox_ops`, `sync_conflicts`, `blob_transfer_receipts`, `sync_cursors` | Offline-first atomic sync queue, conflict preservation (`N-042`), and explicit per-blob receipts (`CONT-004`) | `(workspace_id, created_at_utc)`, `(workspace_id, resolved)` |
+| `automation_runs` | Idempotent automation execution audit ledger (`PF-34`, `N-035`) | `PRIMARY KEY (idempotency_key)` |
+| `app_preferences` | Persistent user settings (`UserWorkspacePreferences`), `CalendarViewConfig`, stable `deviceId`, and OS-vault-encrypted secret ciphertexts | `PRIMARY KEY (key)` |
 
 ---
 
-## 3. Future Schema Evolution (New Product Only)
+## 3. Verified Schema Evolution (`v1 → v2` Real Room Migration)
 
-- Version `1` initializes fresh empty databases on Android and Windows.
-- Every future change (`v1 → v2 → ...`) uses explicit deterministic Room `Migration` classes tested with exported JSON schemas and staged pre-upgrade backup snapshots.
-- No migration path exists or is permitted for legacy Planaday / Dayplana databases (Owner Decision O-004).
+- **Schema v1 (`1.json`):** Initial greenfield schema for fresh installs.
+- **Schema v2 (`2.json`, `PlanadayMigrations.MIGRATION_1_2`):** Additive migration adding `schedule_start_iso` and `schedule_end_iso` columns to `record_index` plus composite keyset and calendar-range indexes, wired into BOTH `JvmPlanadayDatabaseFactory` and `AndroidPlanadayDatabaseFactory`.
+- **Automated Migration Proof:** `Update2ScalabilitySecurityAndFeaturesTest#syncTransportSecurityPolicyAndRealRoomMigration1To2PreserveData` builds a genuine `user_version = 1` SQLite database directly from `1.json`, inserts user data, opens it with Room v2 + `MIGRATION_1_2`, and verifies 100% lossless record survival and index availability.
+- **Owner Decision O-004:** Zero legacy Planaday / Dayplana database importers or compatibility bridges exist.
