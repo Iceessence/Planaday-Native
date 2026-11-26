@@ -53,8 +53,8 @@ class ScaleSoakConflictAndStreamingTest {
         val dbA = JvmPlanadayDatabaseFactory.createOnDisk(File(devARoot, BuildIdentity.CLIENT_DB_NAME))
         val dbB = JvmPlanadayDatabaseFactory.createOnDisk(File(devBRoot, BuildIdentity.CLIENT_DB_NAME))
         try {
-            val repoA = PlanadayRepository(dbA, LocalBlobStore(File(devARoot, "blobs_v1")), deviceId = "dev_a")
-            val repoB = PlanadayRepository(dbB, LocalBlobStore(File(devBRoot, "blobs_v1")), deviceId = "dev_b")
+            val repoA = PlanadayRepository(dbA, LocalBlobStore(File(devARoot, "blobs_v1")), initialDeviceId = "dev_a")
+            val repoB = PlanadayRepository(dbB, LocalBlobStore(File(devBRoot, "blobs_v1")), initialDeviceId = "dev_b")
             repoA.ensureDefaultWorkspaceExists("ws_personal", "Personal")
             repoB.ensureDefaultWorkspaceExists("ws_personal", "Personal")
 

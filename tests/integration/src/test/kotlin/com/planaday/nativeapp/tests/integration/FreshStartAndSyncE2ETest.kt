@@ -65,8 +65,8 @@ class FreshStartAndSyncE2ETest {
         val dbA = JvmPlanadayDatabaseFactory.createOnDisk(File(devARoot, BuildIdentity.CLIENT_DB_NAME))
         val dbB = JvmPlanadayDatabaseFactory.createOnDisk(File(devBRoot, BuildIdentity.CLIENT_DB_NAME))
         try {
-            val repoA = PlanadayRepository(dbA, LocalBlobStore(File(devARoot, "blobs_v1")), deviceId = "android_dev_a")
-            val repoB = PlanadayRepository(dbB, LocalBlobStore(File(devBRoot, "blobs_v1")), deviceId = "windows_dev_b")
+            val repoA = PlanadayRepository(dbA, LocalBlobStore(File(devARoot, "blobs_v1")), initialDeviceId = "android_dev_a")
+            val repoB = PlanadayRepository(dbB, LocalBlobStore(File(devBRoot, "blobs_v1")), initialDeviceId = "windows_dev_b")
 
             assertEquals(0L, repoA.countAllRecords(), "Fresh Device A MUST start with 0 records (O-004)")
             assertEquals(0L, repoB.countAllRecords(), "Fresh Device B MUST start with 0 records (O-004)")

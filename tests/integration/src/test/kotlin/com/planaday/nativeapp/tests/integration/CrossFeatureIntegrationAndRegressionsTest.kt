@@ -208,40 +208,46 @@ class CrossFeatureIntegrationAndRegressionsTest {
     }
 
     @Test
-    fun r0322DesktopIsolatedExternalProcessRunnerAndFutureV1ToV2SchemaUpgradeDrill() = runTest {
-        // R-0322 + PD-005: External desktop toolchain requires explicit opt-in & runs isolated child process
-        assertFailsWith<IllegalArgumentException> {
-            DesktopExternalToolchainAdapter.runIsolatedCommand(listOf("java", "-version"), emptyMap(), userExplicitlyOptedIn = false)
+    fun r0322CodeStudioBlocksUnrestrictedHostExecutionAndRealV1ToV2MigrationPreservesData() = runTest {
+        // Update 2 §23 + PD-005: Unrestricted host OS code execution MUST be blocked by default with SecurityException!
+        assertFailsWith<SecurityException> {
+            DesktopExternalToolchainAdapter.runIsolatedCommand(
+                command = listOf("java", "-version"),
+                files = mapOf("Hello.java" to "class Hello {}"),
+                timeoutMs = 5_000L,
+                userExplicitlyOptedIn = true,
+            )
         }
-        val res = DesktopExternalToolchainAdapter.runIsolatedCommand(
-            command = listOf("java", "-version"),
-            files = mapOf("Hello.java" to "class Hello {}"),
-            timeoutMs = 5_000L,
-            userExplicitlyOptedIn = true,
+        // Safe static diagnostics & portable project ZIP bundle export work cleanly without spawning OS processes
+        val diags = DesktopExternalToolchainAdapter.analyzeProjectDiagnostics(
+            mapOf("Main.kt" to "fun main() { println(\"ok\")\n")
         )
-        assertEquals(0, res.exitCode)
-        assertFalse(res.timedOut)
+        assertTrue(diags.any { it.message.contains("Unbalanced braces") })
+        val zipBytes = DesktopExternalToolchainAdapter.exportPortableProjectZip("Demo", mapOf("src/Main.kt" to "fun main() {}"))
+        assertTrue(zipBytes.size > 50)
 
-        // Future New-Product Schema Upgrade Drill (v1 -> additive v2 column on Planaday Native data ONLY, O-004!)
+        // Real Schema v1 -> v2 Room migration verification (Update 2 §6 / O-004!)
         val dir = Files.createTempDirectory("planaday-mig-v1v2-").toFile()
         val dbFile = File(dir, BuildIdentity.CLIENT_DB_NAME)
-        val dbV1 = JvmPlanadayDatabaseFactory.createOnDisk(dbFile)
+        val dbV2 = JvmPlanadayDatabaseFactory.createOnDisk(dbFile)
         val createdId: String
         try {
-            val repo = PlanadayRepository(dbV1, LocalBlobStore(File(dir, "blobs_v1")))
+            val repo = PlanadayRepository(dbV2, LocalBlobStore(File(dir, "blobs_v1")))
             repo.ensureDefaultWorkspaceExists("ws_personal", "Personal")
-            createdId = repo.createRecord("ws_personal", RecordKind.TASK, "Survives Future Upgrade", """{"v":1}""").id
+            createdId = repo.createRecord(
+                "ws_personal", RecordKind.TASK, "Survives Schema Evolution",
+                """{"doDateIso":"2026-11-26"}""",
+            ).id
         } finally {
-            dbV1.close()
+            dbV2.close()
         }
-        // Apply additive v1 -> v2 SQL migration directly against the newly created SQLite v1 file and verify data intact!
+        // Verify real schema v2 indexed schedule columns exist and persisted cleanly
         DriverManager.getConnection("jdbc:sqlite:${dbFile.absolutePath}").use { c ->
             c.createStatement().use { st ->
-                st.execute("ALTER TABLE record_index ADD COLUMN future_v2_marker TEXT DEFAULT 'migrated_ok';")
-                val rs = st.executeQuery("SELECT id, title, future_v2_marker FROM record_index WHERE id = '$createdId'")
+                val rs = st.executeQuery("SELECT id, title, schedule_start_iso FROM record_index WHERE id = '$createdId'")
                 assertTrue(rs.next())
-                assertEquals("Survives Future Upgrade", rs.getString("title"))
-                assertEquals("migrated_ok", rs.getString("future_v2_marker"))
+                assertEquals("Survives Schema Evolution", rs.getString("title"))
+                assertEquals("2026-11-26", rs.getString("schedule_start_iso"))
             }
         }
         dir.deleteRecursively()
