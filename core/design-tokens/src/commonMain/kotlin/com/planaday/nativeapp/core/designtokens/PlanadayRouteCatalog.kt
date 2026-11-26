@@ -1,18 +1,19 @@
 package com.planaday.nativeapp.core.designtokens
 
 /**
- * Exhaustive navigation directory preserving all 54 original named Planaday workspaces (C-0001..C-0054)
- * plus first-release N-series views, organized into customizable collapsible sidebar groups.
+ * Exhaustive navigation directory covering all 54 Planaday workspaces (C-0001..C-0054)
+ * with clean, customer-facing labels and descriptions (Update 2 §7 — internal requirement
+ * references are kept strictly for Developer Diagnostics, never cluttering customer UI).
  */
 enum class PlanadayRouteGroup(val title: String) {
-    DAILY_PLANNING("Daily & Planning"),
-    MIND_TIME("Mind, Knowledge & Time"),
-    PLANNER_VISUAL("Physical Planner & Canvas"),
-    KITCHEN_LIFE("Kitchen & Life-OS"),
-    LABORATORY("Laboratory Suite (15)"),
+    DAILY_PLANNING("Plan & Focus"),
+    MIND_TIME("Notes, Diary & Time"),
+    PLANNER_VISUAL("Planner & Canvas"),
+    KITCHEN_LIFE("Kitchen & Life"),
+    LABORATORY("Laboratory"),
     OFFICE_MATH("Math, Office & Files"),
-    PROJECTS_CREATIVE("Projects & Creative Studios"),
-    CUSTOMIZATION_SYSTEM("Customization, Sync & System"),
+    PROJECTS_CREATIVE("Projects & Creative"),
+    CUSTOMIZATION_SYSTEM("Workspace & System"),
 }
 
 enum class PlanadayRoute(
@@ -23,73 +24,73 @@ enum class PlanadayRoute(
     val requirementRef: String,
     val description: String,
 ) {
-    // Daily & Planning
-    TODAY("today", "Today Spread", "Today", PlanadayRouteGroup.DAILY_PLANNING, "C-0004", "Daily priorities, events, quick capture, meals, timers & wellness."),
-    HOME("home", "Home Dashboard", "Home", PlanadayRouteGroup.DAILY_PLANNING, "C-0003", "Configurable widgets and workspace overview."),
-    QUICK_GLANCE("quick_glance", "Quick Glance", "Glance", PlanadayRouteGroup.DAILY_PLANNING, "C-0002", "Fast-launch compact daily snapshot."),
-    ALL_IN_ONE("all_in_one", "All-in-One Scroll", "Scroll", PlanadayRouteGroup.DAILY_PLANNING, "C-0001", "Continuous scrollable personal productivity hub."),
-    FLOW_CALENDAR("calendar", "Flow Calendar (1m–4h)", "Calendar", PlanadayRouteGroup.DAILY_PLANNING, "C-0007", "Minute-level zoom, 7 overlap policies, multi-calendar layers & ICS."),
-    PERIOD_CALENDAR("period_calendar", "Week / Month / Year", "W/M/Y", PlanadayRouteGroup.DAILY_PLANNING, "C-0006", "Multi-scale period planning views."),
-    TASK_CALENDAR("task_calendar", "Task Calendar (Auto-Schedule)", "Schedule", PlanadayRouteGroup.DAILY_PLANNING, "C-0008", "Constraint-aware intelligent task scheduling & learned durations."),
-    TASKS("tasks", "Tasks & Carryover", "Tasks", PlanadayRouteGroup.DAILY_PLANNING, "C-0009", "Do Date vs Hard Due Date, carryover age, priorities & dependencies."),
-    CHORES("chores", "Chores & Room Health", "Chores", PlanadayRouteGroup.DAILY_PLANNING, "C-0010", "Completion-driven chore recurrence, room health & fairness."),
-    GOALS("goals", "Goals & Milestones", "Goals", PlanadayRouteGroup.DAILY_PLANNING, "C-0039", "Long-term goals linked to canonical tasks & milestones."),
-    HABITS("habits", "Habits & Routines", "Habits", PlanadayRouteGroup.DAILY_PLANNING, "C-0040", "Streaks, daily/weekly targets & routines."),
+    // Plan & Focus
+    TODAY("today", "Today", "Today", PlanadayRouteGroup.DAILY_PLANNING, "C-0004", "Your daily schedule, priorities, habits, quick capture, and wellness."),
+    HOME("home", "Home", "Home", PlanadayRouteGroup.DAILY_PLANNING, "C-0003", "Customizable dashboard widgets across your active workspace."),
+    QUICK_GLANCE("quick_glance", "Quick Glance", "Glance", PlanadayRouteGroup.DAILY_PLANNING, "C-0002", "Compact daily snapshot for fast check-ins."),
+    ALL_IN_ONE("all_in_one", "All-in-One", "Overview", PlanadayRouteGroup.DAILY_PLANNING, "C-0001", "Continuous scrollable view of your day."),
+    FLOW_CALENDAR("calendar", "Flow Calendar", "Calendar", PlanadayRouteGroup.DAILY_PLANNING, "C-0007", "Interactive day, week, month, year, and agenda calendar with zoom and layers."),
+    PERIOD_CALENDAR("period_calendar", "Month & Year", "Month", PlanadayRouteGroup.DAILY_PLANNING, "C-0006", "Multi-week, monthly, and annual planning horizons."),
+    TASK_CALENDAR("task_calendar", "Schedule Assistant", "Schedule", PlanadayRouteGroup.DAILY_PLANNING, "C-0008", "Visual task scheduling and time-block planning around your calendar."),
+    TASKS("tasks", "Tasks", "Tasks", PlanadayRouteGroup.DAILY_PLANNING, "C-0009", "Tasks, subtasks, priorities, deadlines, dependencies, and carryover."),
+    CHORES("chores", "Chores", "Chores", PlanadayRouteGroup.DAILY_PLANNING, "C-0010", "Completion-driven chores, room health, and household rotation."),
+    GOALS("goals", "Goals", "Goals", PlanadayRouteGroup.DAILY_PLANNING, "C-0039", "Long-term goals, milestones, and linked tasks."),
+    HABITS("habits", "Habits", "Habits", PlanadayRouteGroup.DAILY_PLANNING, "C-0040", "Daily and weekly habits, streaks, and routines."),
 
-    // Mind, Knowledge & Time
-    NOTES("notes", "Notes & Knowledge Graph", "Notes", PlanadayRouteGroup.MIND_TIME, "C-0026", "Hierarchical notebooks, WikiLinks, 100k-word editor & Draft Recovery Inbox."),
-    THOUGHT_INBOX("thoughts", "Thought Inbox", "Inbox", PlanadayRouteGroup.MIND_TIME, "C-0027", "Rapid capture and triage into linked canonical records."),
-    DIARY("diary", "Diary & Mood (1–10)", "Diary", PlanadayRouteGroup.MIND_TIME, "C-0028", "Custom wellness scales, private bathroom logs, photos & trends."),
-    LIFE_EVENTS("life_events", "Life Events", "Events", PlanadayRouteGroup.MIND_TIME, "C-0013", "Major personal & historical milestone timeline."),
-    SPACED_REVIEW("spaced_review", "Spaced Review", "Review", PlanadayRouteGroup.MIND_TIME, "C-0029", "Spaced repetition learning decks linked to notes."),
-    CLOCK_WORLD("clock", "Clock & World Clock", "Clock", PlanadayRouteGroup.MIND_TIME, "C-0030", "6+ clock designs & multi-timezone world clock."),
-    ALARMS("alarms", "Smart Alarms", "Alarms", PlanadayRouteGroup.MIND_TIME, "C-0031", "Wall-time alarms with quiet hours, snooze & reboot diagnostics."),
-    TIMERS("timers", "Timers & Pomodoro", "Timers", PlanadayRouteGroup.MIND_TIME, "C-0032", "Monotonic elapsed timers, Pomodoro & interval presets."),
-    STOPWATCH("stopwatch", "Stopwatch & Time Ledger", "Ledger", PlanadayRouteGroup.MIND_TIME, "C-0033", "Lap stopwatch and persistent time ledger."),
-    COUNTDOWNS("countdowns", "Countdowns", "Count", PlanadayRouteGroup.MIND_TIME, "C-0034", "Target date countdown trackers."),
+    // Notes, Diary & Time
+    NOTES("notes", "Notes", "Notes", PlanadayRouteGroup.MIND_TIME, "C-0026", "Nested notebooks, large documents, outlines, links, revisions, and draft recovery."),
+    THOUGHT_INBOX("thoughts", "Inbox", "Inbox", PlanadayRouteGroup.MIND_TIME, "C-0027", "Quick thought capture and triage into tasks, notes, or projects."),
+    DIARY("diary", "Diary", "Diary", PlanadayRouteGroup.MIND_TIME, "C-0028", "Daily journal, mood & wellness ratings, private logs, and trends."),
+    LIFE_EVENTS("life_events", "Life Events", "Timeline", PlanadayRouteGroup.MIND_TIME, "C-0013", "Personal milestones and timeline memories."),
+    SPACED_REVIEW("spaced_review", "Study & Review", "Review", PlanadayRouteGroup.MIND_TIME, "C-0029", "Spaced repetition flashcards linked to your notes."),
+    CLOCK_WORLD("clock", "World Clock", "Clock", PlanadayRouteGroup.MIND_TIME, "C-0030", "Live clocks across time zones and customizable clock faces."),
+    ALARMS("alarms", "Alarms", "Alarms", PlanadayRouteGroup.MIND_TIME, "C-0031", "Recurring alarms, snooze, and quiet hours."),
+    TIMERS("timers", "Timers & Pomodoro", "Timers", PlanadayRouteGroup.MIND_TIME, "C-0032", "Multiple simultaneous timers, Pomodoro focus sessions, and intervals."),
+    STOPWATCH("stopwatch", "Stopwatch & Ledger", "Ledger", PlanadayRouteGroup.MIND_TIME, "C-0033", "Live stopwatch, lap times, and persistent time tracking."),
+    COUNTDOWNS("countdowns", "Countdowns", "Countdowns", PlanadayRouteGroup.MIND_TIME, "C-0034", "Live countdowns to upcoming dates and deadlines."),
 
-    // Physical Planner & Canvas
-    PHYSICAL_PLANNER("physical_planner", "Physical Planner", "Planner", PlanadayRouteGroup.PLANNER_VISUAL, "C-0005", "Covers, bindings, dynamic left/right side tabs, 5k+ bookmarks & 50-state map."),
-    WHITEBOARD("whiteboard", "Infinite Whiteboard", "Board", PlanadayRouteGroup.PLANNER_VISUAL, "C-0019", "10k-object spatial canvas, frames, connectors & SVG export."),
+    // Planner & Canvas
+    PHYSICAL_PLANNER("physical_planner", "Digital Planner", "Planner", PlanadayRouteGroup.PLANNER_VISUAL, "C-0005", "Customizable notebooks, covers, spreads, stickers, ink, and linked records."),
+    WHITEBOARD("whiteboard", "Whiteboard", "Board", PlanadayRouteGroup.PLANNER_VISUAL, "C-0019", "Visual canvas for sticky notes, shapes, connectors, drawing, and linked records."),
 
-    // Kitchen & Life-OS
-    RECIPES("recipes", "Recipes & Clipper", "Recipes", PlanadayRouteGroup.KITCHEN_LIFE, "C-0035", "Scalable portions, unit conversion & offline recipe provenance."),
-    PANTRY("pantry", "Pantry Lots (FIFO/FEFO)", "Pantry", PlanadayRouteGroup.KITCHEN_LIFE, "C-0036", "Lot expiry tracking, zones, barcodes & par-level alerts."),
-    MEAL_PLANNER("meals", "Meal Planner & Food History", "Meals", PlanadayRouteGroup.KITCHEN_LIFE, "C-0037", "Unified Food History linked directly to Today & Recipes."),
-    GROCERIES("groceries", "Groceries & Reconciliation", "Grocery", PlanadayRouteGroup.KITCHEN_LIFE, "C-0038", "Aisle-sorted shopping reconciling directly into Pantry & Expenses."),
-    HOUSEHOLD("household", "Household Fairness", "Family", PlanadayRouteGroup.KITCHEN_LIFE, "C-0041", "Family profiles, per-item sharing & chore fairness."),
-    PEOPLE_GIFTS("people", "People & Gifts", "People", PlanadayRouteGroup.KITCHEN_LIFE, "C-0042", "Contacts, gift ideas & occasions."),
-    HEALTH_MEDS("health", "Health & Medications", "Health", PlanadayRouteGroup.KITCHEN_LIFE, "C-0043", "Medication schedules, refills & workouts (organizational aid only)."),
-    FINANCE("finance", "Finance, Bills & Budgets", "Finance", PlanadayRouteGroup.KITCHEN_LIFE, "C-0044", "Exact decimal envelopes, expenses, bills, warranties & wishlists."),
-    MEDIA_HOBBIES("media", "Media & Hobbies", "Media", PlanadayRouteGroup.KITCHEN_LIFE, "C-0045", "Books, films, games & hobby collections."),
-    TRAVEL("travel", "Travel & Hosting", "Travel", PlanadayRouteGroup.KITCHEN_LIFE, "C-0046", "Offline travel packs, packing templates & hosting checklists."),
-    HOME_ASSETS("home_assets", "Home, Pets, Vehicles & Bins", "HomeOS", PlanadayRouteGroup.KITCHEN_LIFE, "C-0047", "Home maintenance, vehicles, pets/plants & storage bins."),
+    // Kitchen & Life
+    RECIPES("recipes", "Recipes", "Recipes", PlanadayRouteGroup.KITCHEN_LIFE, "C-0035", "Recipe collection with serving scaling and pantry shortage checks."),
+    PANTRY("pantry", "Pantry", "Pantry", PlanadayRouteGroup.KITCHEN_LIFE, "C-0036", "Pantry inventory lots, storage zones, and expiration tracking."),
+    MEAL_PLANNER("meals", "Meal Planner", "Meals", PlanadayRouteGroup.KITCHEN_LIFE, "C-0037", "Weekly meal plans and unified food history."),
+    GROCERIES("groceries", "Groceries", "Groceries", PlanadayRouteGroup.KITCHEN_LIFE, "C-0038", "Aisle-sorted shopping lists that restock pantry and log expenses."),
+    HOUSEHOLD("household", "Household", "Family", PlanadayRouteGroup.KITCHEN_LIFE, "C-0041", "Family profiles, shared items, and chore balance."),
+    PEOPLE_GIFTS("people", "People & Gifts", "People", PlanadayRouteGroup.KITCHEN_LIFE, "C-0042", "Contacts, occasions, and gift planning."),
+    HEALTH_MEDS("health", "Health & Meds", "Health", PlanadayRouteGroup.KITCHEN_LIFE, "C-0043", "Personal medication schedules, refills, and workouts."),
+    FINANCE("finance", "Finance", "Finance", PlanadayRouteGroup.KITCHEN_LIFE, "C-0044", "Budgets, expenses, recurring bills, warranties, and wishlists."),
+    MEDIA_HOBBIES("media", "Media & Hobbies", "Media", PlanadayRouteGroup.KITCHEN_LIFE, "C-0045", "Books, films, games, and hobby project tracking."),
+    TRAVEL("travel", "Travel", "Travel", PlanadayRouteGroup.KITCHEN_LIFE, "C-0046", "Trips, offline travel packs, time zones, and packing checklists."),
+    HOME_ASSETS("home_assets", "Home & Assets", "HomeOS", PlanadayRouteGroup.KITCHEN_LIFE, "C-0047", "Home maintenance, vehicles, pets, plants, and storage bins."),
 
-    // Laboratory Operations
-    LAB_WORKSPACE("lab", "Laboratory Suite (15 Tabs)", "Lab", PlanadayRouteGroup.LABORATORY, "C-0014", "Samples/Custody, Inventory, Budgets, Calibration/QC, Wet vs NIR & QMS (non-LIMS aid)."),
+    // Laboratory
+    LAB_WORKSPACE("lab", "Laboratory", "Lab", PlanadayRouteGroup.LABORATORY, "C-0014", "Samples, chain of custody, inventory, pricing, calibration, Wet vs. NIR, and QMS."),
 
-    // Mathematics, Office & Files
-    CALCULATOR("calculator", "Calculator, Graph & 23 Units", "Calc", PlanadayRouteGroup.OFFICE_MATH, "C-0015", "Scientific/Lab AST calculator, pole-safe roots & 23-category unit converter."),
-    SPREADSHEETS("spreadsheets", "Spreadsheets (DAG Engine)", "Sheets", PlanadayRouteGroup.OFFICE_MATH, "C-0016", "Multi-sheet sparse formulas, #REF!, CSV/XLSX & live Planaday pulls."),
-    PRESENTATIONS("presentations", "Presentations (PPTX/HTML)", "Slides", PlanadayRouteGroup.OFFICE_MATH, "C-0017", "Slide designer, presenter view, PPTX import/export & HTML fidelity."),
-    UNIVERSAL_FILES("files", "Universal Files & PDF Review", "Files", PlanadayRouteGroup.OFFICE_MATH, "C-0025", "Personal/Lab nested folders, SHA-256 blobs & document review."),
-    PHOTO_STUDIO("photos", "Camera & Photo Studio", "Photos", PlanadayRouteGroup.OFFICE_MATH, "C-0024", "SHA-256 deduplicated library, albums & non-destructive edit recipes."),
+    // Math, Office & Files
+    CALCULATOR("calculator", "Calculator & Math", "Calculator", PlanadayRouteGroup.OFFICE_MATH, "C-0015", "Scientific calculator, graphing, matrices, units, and reusable formulas."),
+    SPREADSHEETS("spreadsheets", "Spreadsheets", "Sheets", PlanadayRouteGroup.OFFICE_MATH, "C-0016", "Multi-sheet workbooks, formulas, sorting, charts, and CSV/Excel interchange."),
+    PRESENTATIONS("presentations", "Presentations", "Slides", PlanadayRouteGroup.OFFICE_MATH, "C-0017", "Visual slide designer, speaker notes, presenter mode, and PowerPoint/HTML export."),
+    UNIVERSAL_FILES("files", "Files & Documents", "Files", PlanadayRouteGroup.OFFICE_MATH, "C-0025", "Folders, attachments, PDF annotations, and verified file storage."),
+    PHOTO_STUDIO("photos", "Photo Studio", "Photos", PlanadayRouteGroup.OFFICE_MATH, "C-0024", "Photo library, albums, and non-destructive crop, rotate, and tone edits."),
 
-    // Projects & Creative Studios
-    PROJECTS("projects", "Projects & Custom Schemas", "Projects", PlanadayRouteGroup.PROJECTS_CREATIVE, "C-0020", "Nested projects, Gantt critical path & declarative Custom Record Schemas."),
-    KANBAN("kanban", "Kanban Boards (Live Tasks)", "Kanban", PlanadayRouteGroup.PROJECTS_CREATIVE, "C-0018", "Zero-duplication live Tasks/Chores board + custom WIP-limited boards."),
-    GAME_DEV("game_dev", "Game Dev Studio", "GameDev", PlanadayRouteGroup.PROJECTS_CREATIVE, "C-0021", "GDD, characters, enemies, skill trees, items & deterministic balancing."),
-    BOOK_STUDIO("book_studio", "Book Studio & Continuity", "Books", PlanadayRouteGroup.PROJECTS_CREATIVE, "C-0022", "Series, chapters, scenes, worldbuilding, continuity checker & export."),
-    CODE_STUDIO("code_studio", "Code Studio & Debugger", "Code", PlanadayRouteGroup.PROJECTS_CREATIVE, "C-0023", "Multi-file editor, isolated desktop compiler/debugger & safe interpreter."),
+    // Projects & Creative
+    PROJECTS("projects", "Projects", "Projects", PlanadayRouteGroup.PROJECTS_CREATIVE, "C-0020", "Projects, milestones, Gantt timelines, critical paths, and custom databases."),
+    KANBAN("kanban", "Boards", "Boards", PlanadayRouteGroup.PROJECTS_CREATIVE, "C-0018", "Kanban task boards and custom workflow columns."),
+    GAME_DEV("game_dev", "Game Studio", "GameDev", PlanadayRouteGroup.PROJECTS_CREATIVE, "C-0021", "Game design docs, entities, items, skills, economy, and balance simulations."),
+    BOOK_STUDIO("book_studio", "Book Studio", "Books", PlanadayRouteGroup.PROJECTS_CREATIVE, "C-0022", "Manuscripts, chapters, characters, worldbuilding, continuity, and eBook export."),
+    CODE_STUDIO("code_studio", "Code Studio", "Code", PlanadayRouteGroup.PROJECTS_CREATIVE, "C-0023", "Multi-file code projects, syntax diagnostics, step debugger, and bundle export."),
 
-    // Customization, Reports, Sync & System
-    HISTORY_REVIEWS("history", "History & Reviews", "History", PlanadayRouteGroup.CUSTOMIZATION_SYSTEM, "C-0011", "Permission-controlled timelines & period reflections."),
-    REPORTS("reports", "Reports, Pivots & Decisions", "Reports", PlanadayRouteGroup.CUSTOMIZATION_SYSTEM, "C-0012", "Analytics, evidence snapshots & Decision Journal."),
-    INSIGHTS("insights", "Insights & Heatmaps", "Insights", PlanadayRouteGroup.CUSTOMIZATION_SYSTEM, "C-0050", "Duration calibration & productivity heatmaps."),
-    CUSTOM_SPACES("spaces", "Custom Spaces & Tabs", "Spaces", PlanadayRouteGroup.CUSTOMIZATION_SYSTEM, "C-0048", "Declarative custom tabs, widgets & workspace layout profiles."),
-    RITUALS("rituals", "Rituals & Context Schedules", "Rituals", PlanadayRouteGroup.CUSTOMIZATION_SYSTEM, "C-0049", "Schedule-based automatic workspace switching & contexts."),
-    AUTOMATIONS("automations", "Automations (Preview & Guard)", "Auto", PlanadayRouteGroup.CUSTOMIZATION_SYSTEM, "C-0051", "Trigger-condition-preview-action rules with replay dedup & approval gates."),
-    GUIDE("guide", "Guide & Feature Directory", "Guide", PlanadayRouteGroup.CUSTOMIZATION_SYSTEM, "C-0052", "Offline guide, keyboard shortcuts & complete feature directory."),
-    TRASH("trash", "Trash (30-Day Recovery)", "Trash", PlanadayRouteGroup.CUSTOMIZATION_SYSTEM, "C-0053", "Soft-deleted record recovery & ref-counted confirmed purge."),
-    SETTINGS("settings", "Settings, Sync & Diagnostics", "Settings", PlanadayRouteGroup.CUSTOMIZATION_SYSTEM, "C-0054", "Themes, self-hosted sync pairing, verified backups & build identity."),
+    // Workspace & System
+    HISTORY_REVIEWS("history", "History & Reviews", "History", PlanadayRouteGroup.CUSTOMIZATION_SYSTEM, "C-0011", "Activity timelines and weekly or monthly reflections."),
+    REPORTS("reports", "Reports & Decisions", "Reports", PlanadayRouteGroup.CUSTOMIZATION_SYSTEM, "C-0012", "Pivot reports, snapshots, and decision journal."),
+    INSIGHTS("insights", "Insights", "Insights", PlanadayRouteGroup.CUSTOMIZATION_SYSTEM, "C-0050", "Focus time calibration and completion trends."),
+    CUSTOM_SPACES("spaces", "Custom Workspaces", "Spaces", PlanadayRouteGroup.CUSTOMIZATION_SYSTEM, "C-0048", "Custom modules, tabs, layouts, and templates."),
+    RITUALS("rituals", "Routines & Contexts", "Contexts", PlanadayRouteGroup.CUSTOMIZATION_SYSTEM, "C-0049", "Scheduled contexts and focus modes."),
+    AUTOMATIONS("automations", "Automations", "Automations", PlanadayRouteGroup.CUSTOMIZATION_SYSTEM, "C-0051", "No-code workflow rules with dry-run preview and execution history."),
+    GUIDE("guide", "Help & Shortcuts", "Guide", PlanadayRouteGroup.CUSTOMIZATION_SYSTEM, "C-0052", "Offline guide, keyboard shortcuts, and module directory."),
+    TRASH("trash", "Trash", "Trash", PlanadayRouteGroup.CUSTOMIZATION_SYSTEM, "C-0053", "Recover recently deleted items within 30 days."),
+    SETTINGS("settings", "Settings", "Settings", PlanadayRouteGroup.CUSTOMIZATION_SYSTEM, "C-0054", "Appearance, workspaces, backups, optional sync, and diagnostics."),
 }
