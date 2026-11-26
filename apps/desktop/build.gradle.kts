@@ -32,6 +32,7 @@ dependencies {
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(compose.desktop.uiTestJUnit4)
 }
 
 compose.desktop {
@@ -43,6 +44,18 @@ compose.desktop {
             packageVersion = "1.0.0"
             description = "Planaday Native — Offline-First Personal & Laboratory Productivity OS"
             vendor = "Planaday Native"
+            modules(
+                "java.desktop",
+                "java.instrument",
+                "java.logging",
+                "java.management",
+                "java.naming",
+                "java.net.http",
+                "java.sql",
+                "java.xml",
+                "jdk.crypto.ec",
+                "jdk.unsupported",
+            )
             windows {
                 menuGroup = "Planaday Native"
                 perUserInstall = true
