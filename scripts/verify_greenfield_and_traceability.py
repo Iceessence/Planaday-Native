@@ -69,6 +69,9 @@ EXCLUSION_DOC_WHITELIST = {
     "docs/LEGACY_REFERENCE_LEDGER.csv",
     "docs/REQUIREMENT_TRACEABILITY.csv",
     "docs/EXPANSION_TRACEABILITY.csv",
+    "docs/TRACEABILITY_DEFINITIONS.md",
+    "docs/spec/PLANADAY_FRESH_START_MASTER_REV4_FULL.md",
+    "docs/spec/PLANADAY_FRESH_START_AI_PROMPT_REV4.md",
     "scripts/verify_greenfield_and_traceability.py",
 }
 
@@ -156,6 +159,18 @@ def main():
         missing_issues = [i for i in expected_issues if i not in issues_text]
         if missing_issues:
             errors.append(f"KNOWN_ISSUES.md missing historical IDs: {missing_issues}")
+
+    # 5b. Verify complete verbatim Rev 4.0 Master Specification is preserved intact (>=130 KB)
+    full_spec_path = os.path.join(DOCS_DIR, "spec", "PLANADAY_FRESH_START_MASTER_REV4_FULL.md")
+    if not os.path.exists(full_spec_path):
+        errors.append("Missing complete verbatim Rev 4.0 master spec: docs/spec/PLANADAY_FRESH_START_MASTER_REV4_FULL.md")
+    elif os.path.getsize(full_spec_path) < 130_000:
+        errors.append(f"docs/spec/PLANADAY_FRESH_START_MASTER_REV4_FULL.md appears truncated ({os.path.getsize(full_spec_path)} bytes)")
+
+    # 5c. Verify BuildIdentity does not ship placeholder 'greenfield-dev'
+    build_id_path = os.path.join(REPO_ROOT, "core", "model", "src", "commonMain", "kotlin", "com", "planaday", "nativeapp", "core", "model", "BuildIdentity.kt")
+    if os.path.exists(build_id_path) and '"greenfield-dev"' in open(build_id_path, "r", encoding="utf-8").read():
+        errors.append("BuildIdentity.kt still contains placeholder 'greenfield-dev' instead of generated Git commit SHA")
 
     # 6. Scan entire repository for legacy files, SHA-256 duplicates, prohibited identities & web-shell deps
     scanned_files = 0

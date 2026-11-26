@@ -4,12 +4,14 @@ import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
+import androidx.room.migration.Migration
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
 
 /**
- * Canonical Room KMP + Bundled SQLite Schema v1 (ADR-002, ADR-004, Owner Decision O-004).
+ * Canonical Room KMP + Bundled SQLite Schema v2 (ADR-002, ADR-004, Owner Decision O-004, Update 2 §6).
  * Always initializes completely empty new databases — zero legacy Planaday DB import.
+ * Supports clean forward migrations for newly created Planaday Native data (v1 -> v2).
  */
 @Database(
     entities = [
@@ -29,7 +31,7 @@ import androidx.sqlite.execSQL
         AutomationRunEntity::class,
         AppPreferenceEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @ConstructedBy(PlanadayDatabaseConstructor::class)
@@ -41,6 +43,24 @@ abstract class PlanadayDatabase : RoomDatabase() {
     abstract fun attachmentDao(): AttachmentDao
     abstract fun plannerBookmarkDao(): PlannerBookmarkDao
     abstract fun syncDao(): SyncDao
+}
+
+object PlanadayMigrations {
+    /** Real additive v1 -> v2 migration adding indexed calendar date-range & keyset pagination indexes. */
+    val MIGRATION_1_2: Migration = object : Migration(1, 2) {
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE record_index ADD COLUMN schedule_start_iso TEXT")
+            connection.execSQL("ALTER TABLE record_index ADD COLUMN schedule_end_iso TEXT")
+            connection.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_record_index_workspace_id_kind_deleted_at_utc_updated_at_utc_id " +
+                    "ON record_index (workspace_id, kind, deleted_at_utc, updated_at_utc, id)"
+            )
+            connection.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_record_index_workspace_id_kind_schedule_start_iso_schedule_end_iso " +
+                    "ON record_index (workspace_id, kind, schedule_start_iso, schedule_end_iso)"
+            )
+        }
+    }
 }
 
 @Suppress("NO_ACTUAL_FOR_EXPECT")

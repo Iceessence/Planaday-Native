@@ -30,6 +30,8 @@ data class WorkspaceEntity(
     ],
     indices = [
         Index(value = ["workspace_id", "kind", "updated_at_utc"]),
+        Index(value = ["workspace_id", "kind", "deleted_at_utc", "updated_at_utc", "id"]),
+        Index(value = ["workspace_id", "kind", "schedule_start_iso", "schedule_end_iso"]),
         Index(value = ["workspace_id", "deleted_at_utc"]),
         Index(value = ["workspace_id", "status", "kind"]),
         Index(value = ["workspace_id", "parent_id", "sort_order"]),
@@ -57,6 +59,8 @@ data class CanonicalRecordEntity(
     @ColumnInfo(name = "payload_json") val payloadJson: String = "{}",
     @ColumnInfo(name = "extra_fields_json") val extraFieldsJson: String = "{}",
     @ColumnInfo(name = "is_synthetic_demo") val isSyntheticDemo: Boolean = false,
+    @ColumnInfo(name = "schedule_start_iso") val scheduleStartIso: String? = null,
+    @ColumnInfo(name = "schedule_end_iso") val scheduleEndIso: String? = null,
 )
 
 @Entity(

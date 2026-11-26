@@ -8,18 +8,26 @@ import com.planaday.nativeapp.core.domain.DomainClock
 import com.planaday.nativeapp.core.domain.SystemDomainClock
 import com.planaday.nativeapp.core.model.*
 import com.planaday.nativeapp.core.security.CryptoPrimitives
+import com.planaday.nativeapp.core.security.SecureCredentialVault
 import com.planaday.nativeapp.core.syncprotocol.BlobTransferDirection
 import com.planaday.nativeapp.core.syncprotocol.BlobTransferReceipt
 import com.planaday.nativeapp.core.syncprotocol.BlobTransferStatus
 import com.planaday.nativeapp.core.syncprotocol.SyncOpKind
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 
 class OptimisticConflictException(message: String) : IllegalStateException(message)
 
@@ -31,28 +39,114 @@ data class SearchHit(
     val summaryText: String,
 )
 
+data class RecordMutationEvent(
+    val workspaceId: String,
+    val recordId: String,
+    val kind: RecordKind,
+    val rev: Long,
+)
+
+data class KeysetPage(
+    val records: List<CanonicalRecord>,
+    val nextCursorUpdatedAtUtc: String?,
+    val nextCursorId: String?,
+    val hasMore: Boolean,
+)
+
 /**
- * Transactional, concurrency-safe repository over Room KMP + Bundled SQLite (PD-001, PD-016, PF-01, O-004).
+ * Tracks repository read counts per RecordKind so tests and diagnostics can verify
+ * zero unrelated collection fan-out after single-record edits (Update 2 §6).
+ */
+class RepositoryQueryTelemetry {
+    private val readsByKind = ConcurrentHashMap<String, AtomicLong>()
+    val totalListQueries = AtomicLong(0L)
+
+    fun recordKindRead(kind: String) {
+        totalListQueries.incrementAndGet()
+        readsByKind.computeIfAbsent(kind) { AtomicLong(0L) }.incrementAndGet()
+    }
+
+    fun countFor(kind: RecordKind): Long = readsByKind[kind.name]?.get() ?: 0L
+    fun snapshot(): Map<String, Long> = readsByKind.mapValues { it.value.get() }
+    fun reset() {
+        readsByKind.clear()
+        totalListQueries.set(0L)
+    }
+}
+
+/**
+ * Transactional, concurrency-safe, reactive repository over Room KMP + Bundled SQLite
+ * (PD-001, PD-016, PF-01, O-004, Update 2 §6).
  * - Per-record async Mutex + Room immediate SQLite write transaction guarantees zero lost disjoint edits.
- * - Atomically writes record + outbox_ops in the SAME SQLite transaction (rollback leaves zero orphan outbox op).
- * - Enforces workspace isolation on every query, search hit, attachment ref, and trash action.
+ * - Atomically writes record + outbox_ops in the SAME SQLite transaction.
+ * - Exposes bounded reactive Kotlin Flows, O(log N) keyset pagination, and indexed calendar date-range queries.
+ * - Persists stable deviceId, user preferences, and OS-vault-encrypted credentials across restarts.
  */
 class PlanadayRepository(
     val db: PlanadayDatabase,
     val blobStore: LocalBlobStore,
-    val deviceId: String = "dev_${UUID.randomUUID().toString().take(8)}",
+    initialDeviceId: String? = null,
     private val clock: DomainClock = SystemDomainClock,
 ) : DraftPersistenceSink {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private val recordLocks = ConcurrentHashMap<String, Mutex>()
+    val telemetry = RepositoryQueryTelemetry()
+
+    @Volatile
+    var deviceId: String = initialDeviceId ?: "dev_${UUID.randomUUID().toString().take(8)}"
+        private set
+
+    private val _mutations = MutableSharedFlow<RecordMutationEvent>(extraBufferCapacity = 64)
+    val mutations: SharedFlow<RecordMutationEvent> = _mutations.asSharedFlow()
 
     private fun lockFor(recordId: String): Mutex = recordLocks.computeIfAbsent(recordId) { Mutex() }
 
-    /**
-     * Fresh-start bootstrap (O-004): creates ONLY an empty default workspace if the DB is completely brand new.
-     * NEVER seeds personal/legacy records; synthetic demo records are strictly opt-in.
-     */
+    /** Loads or creates a durable device identity persisted in SQLite so sync cursors survive restarts (§28). */
+    suspend fun ensurePersistentDeviceId(): String {
+        val existing = db.syncDao().getPreference(PREF_DEVICE_ID)?.valueJson?.trim()?.removeSurrounding("\"")
+        if (!existing.isNullOrBlank()) {
+            deviceId = existing
+            return existing
+        }
+        savePreference(PREF_DEVICE_ID, json.encodeToString(deviceId))
+        return deviceId
+    }
+
+    // --- Persistent Preferences & Protected Credential Vault (§7, §26, §28) ---
+    suspend fun savePreference(key: String, valueJson: String) {
+        val cur = db.syncDao().getPreference(key)
+        db.syncDao().savePreference(
+            AppPreferenceEntity(
+                key = key,
+                valueJson = valueJson,
+                rev = (cur?.rev ?: 0L) + 1L,
+                updatedAtUtc = clock.nowUtcIso(),
+            )
+        )
+    }
+
+    suspend fun getPreference(key: String): String? = db.syncDao().getPreference(key)?.valueJson
+
+    fun observePreference(key: String): Flow<String?> = db.syncDao().observePreference(key).map { it?.valueJson }
+
+    suspend fun saveProtectedSecret(vault: SecureCredentialVault, keyAlias: String, plaintext: String) {
+        val encrypted = vault.encryptSecret(keyAlias, plaintext)
+        savePreference("secret.$keyAlias", json.encodeToString(encrypted))
+    }
+
+    suspend fun readProtectedSecret(vault: SecureCredentialVault, keyAlias: String): String? {
+        val stored = getPreference("secret.$keyAlias") ?: return null
+        val cipherB64 = runCatching { json.decodeFromString<String>(stored) }.getOrNull() ?: return null
+        return vault.decryptSecret(keyAlias, cipherB64)
+    }
+
+    suspend fun clearProtectedSecret(keyAlias: String) {
+        savePreference("secret.$keyAlias", json.encodeToString(""))
+    }
+
+    // --- Workspaces ---
     suspend fun ensureDefaultWorkspaceExists(workspaceId: String = "ws_personal", name: String = "Personal"): Workspace {
+        ensurePersistentDeviceId()
         val existing = db.workspaceDao().getById(workspaceId)
         if (existing != null) return existing.toModel()
         val now = clock.nowUtcIso()
@@ -60,7 +154,7 @@ class PlanadayRepository(
             id = workspaceId,
             name = name,
             scope = WorkspaceScope.PERSONAL,
-            accentHex = "#A97434",
+            accentHex = "#9A6525",
             iconKey = "home",
             createdAtUtc = now,
             updatedAtUtc = now,
@@ -77,16 +171,120 @@ class PlanadayRepository(
 
     suspend fun listWorkspaces(): List<Workspace> = db.workspaceDao().listAll().map { it.toModel() }
 
+    fun observeWorkspaces(): Flow<List<Workspace>> = db.workspaceDao().observeAll().map { list -> list.map { it.toModel() } }
+
+    fun observeActiveCount(workspaceId: String): Flow<Long> = db.recordDao().observeActiveCount(workspaceId)
+
+    // --- Bounded Reactive & Keyset Paginated Queries (§6) ---
     fun observeRecordsByKind(workspaceId: String, kind: RecordKind, limit: Int = 200): Flow<List<CanonicalRecord>> =
-        db.recordDao().observeByKind(workspaceId, kind.name, limit = limit).map { list -> list.map { it.toModel(json) } }
+        db.recordDao().observeByKind(workspaceId, kind.name, limit = limit)
+            .onEach { telemetry.recordKindRead(kind.name) }
+            .map { list -> list.map { it.toModel(json) } }
+
+    fun observeScheduleWindow(
+        workspaceId: String,
+        kind: RecordKind,
+        rangeStartIso: String,
+        rangeEndIso: String,
+        limit: Int = 500,
+    ): Flow<List<CanonicalRecord>> =
+        db.recordDao().observeScheduleWindow(workspaceId, kind.name, rangeStartIso, rangeEndIso, limit)
+            .onEach { telemetry.recordKindRead("${kind.name}:WINDOW") }
+            .map { list -> list.map { it.toModel(json) } }
+
+    suspend fun listScheduleWindow(
+        workspaceId: String,
+        kind: RecordKind,
+        rangeStartIso: String,
+        rangeEndIso: String,
+        limit: Int = 500,
+    ): List<CanonicalRecord> {
+        telemetry.recordKindRead("${kind.name}:WINDOW")
+        return db.recordDao().listScheduleWindow(workspaceId, kind.name, rangeStartIso, rangeEndIso, limit)
+            .map { it.toModel(json) }
+    }
+
+    /** True O(log N) keyset pagination for large datasets (10k–1M records). */
+    suspend fun listByKindKeyset(
+        workspaceId: String,
+        kind: RecordKind,
+        pageSize: Int = 50,
+        cursorUpdatedAtUtc: String? = null,
+        cursorId: String? = null,
+    ): KeysetPage {
+        telemetry.recordKindRead(kind.name)
+        val fetchLimit = pageSize + 1
+        val entities = if (cursorUpdatedAtUtc == null || cursorId == null) {
+            db.recordDao().listByKindBounded(workspaceId, kind.name, limit = fetchLimit)
+        } else {
+            db.recordDao().listByKindKeyset(workspaceId, kind.name, cursorUpdatedAtUtc, cursorId, limit = fetchLimit)
+        }
+        val hasMore = entities.size > pageSize
+        val pageEntities = if (hasMore) entities.take(pageSize) else entities
+        val last = pageEntities.lastOrNull()
+        return KeysetPage(
+            records = pageEntities.map { it.toModel(json) },
+            nextCursorUpdatedAtUtc = if (hasMore) last?.updatedAtUtc else null,
+            nextCursorId = if (hasMore) last?.id else null,
+            hasMore = hasMore,
+        )
+    }
 
     suspend fun getRecord(workspaceId: String, recordId: String): CanonicalRecord? =
         db.recordDao().getByIdInWorkspace(workspaceId, recordId)?.toModel(json)
 
-    suspend fun listByKind(workspaceId: String, kind: RecordKind): List<CanonicalRecord> =
-        db.recordDao().listByKind(workspaceId, kind.name).map { it.toModel(json) }
+    suspend fun listByKind(workspaceId: String, kind: RecordKind, limit: Int = 500): List<CanonicalRecord> {
+        telemetry.recordKindRead(kind.name)
+        return db.recordDao().listByKind(workspaceId, kind.name, limit = limit).map { it.toModel(json) }
+    }
 
     suspend fun countAllRecords(): Long = db.recordDao().countAllTotal()
+
+    fun observeTrash(workspaceId: String, limit: Int = 250): Flow<List<CanonicalRecord>> =
+        db.recordDao().observeTrash(workspaceId, limit).map { list -> list.map { it.toModel(json) } }
+
+    fun observeDirtyDrafts(workspaceId: String): Flow<List<DraftRecord>> =
+        db.draftAndRevisionDao().observeDirtyDrafts(workspaceId).map { list -> list.map { it.toDraftModel() } }
+
+    fun observePendingOutboxCount(workspaceId: String): Flow<Int> =
+        db.syncDao().observePendingOutboxCount(workspaceId)
+
+    fun observeUnresolvedConflicts(workspaceId: String): Flow<List<SyncConflictEntity>> =
+        db.syncDao().observeUnresolvedConflicts(workspaceId)
+
+    fun observeBlobReceipts(workspaceId: String): Flow<List<BlobTransferReceipt>> =
+        db.syncDao().observeBlobReceipts(workspaceId).map { list -> list.map { it.toReceiptModel() } }
+
+    fun observeAutomationRuns(workspaceId: String, limit: Int = 100): Flow<List<AutomationRunEntity>> =
+        db.syncDao().observeAutomationRuns(workspaceId, limit)
+
+    fun observeWorkspaceAttachments(workspaceId: String, limit: Int = 200): Flow<List<AttachmentMeta>> =
+        db.attachmentDao().observeWorkspaceAttachments(workspaceId, limit).map { list -> list.map { it.toMetaModel() } }
+
+    suspend fun listRevisions(workspaceId: String, recordId: String): List<RevisionSnapshot> =
+        db.draftAndRevisionDao().listRevisions(workspaceId, recordId).map {
+            RevisionSnapshot(
+                id = it.id,
+                workspaceId = it.workspaceId,
+                recordId = it.recordId,
+                recordKind = RecordKind.valueOf(it.recordKind),
+                rev = it.rev,
+                title = it.title,
+                contentSnapshot = it.contentSnapshot,
+                checkpointLabel = it.checkpointLabel,
+                createdAtUtc = it.createdAtUtc,
+                deviceId = it.deviceId,
+                isImmutableEvidence = it.isImmutableEvidence,
+            )
+        }
+
+    suspend fun restoreRevision(workspaceId: String, recordId: String, revisionId: String): CanonicalRecord {
+        val revSnap = listRevisions(workspaceId, recordId).firstOrNull { it.id == revisionId }
+            ?: throw NoSuchElementException("Revision $revisionId not found")
+        return updateRecordAtomic(workspaceId, recordId, recordRevision = true, checkpointLabel = "Restored rev ${revSnap.rev}") {
+            it.copy(title = revSnap.title, payloadJson = revSnap.contentSnapshot)
+        }
+    }
 
     /**
      * Atomically creates a new canonical record AND queues its sync outbox operation in ONE SQLite transaction.
@@ -105,6 +303,8 @@ class PlanadayRepository(
         referencedBlobHashes: List<String> = emptyList(),
         isSyntheticDemo: Boolean = false,
         recordRevision: Boolean = false,
+        scheduleStartIso: String? = null,
+        scheduleEndIso: String? = null,
     ): CanonicalRecord = lockFor(id).withLock {
         val now = clock.nowUtcIso()
         val rec = CanonicalRecord(
@@ -124,7 +324,14 @@ class PlanadayRepository(
             payloadJson = payloadJson,
             isSyntheticDemo = isSyntheticDemo,
         )
-        val entity = rec.toEntity(json, parentId = parentId, sortOrder = sortOrder)
+        val (inferredStart, inferredEnd) = extractScheduleDates(kind, payloadJson)
+        val entity = rec.toEntity(
+            json = json,
+            parentId = parentId,
+            sortOrder = sortOrder,
+            scheduleStartIso = scheduleStartIso ?: inferredStart,
+            scheduleEndIso = scheduleEndIso ?: inferredEnd,
+        )
         db.useWriterConnection { transactor ->
             transactor.immediateTransaction {
                 db.recordDao().insertNew(entity)
@@ -148,12 +355,12 @@ class PlanadayRepository(
                 enqueueOutboxCoalesced(rec, SyncOpKind.UPSERT, baseRev = 0L, referencedBlobHashes = referencedBlobHashes, now = now)
             }
         }
+        _mutations.tryEmit(RecordMutationEvent(workspaceId, rec.id, rec.kind, rec.rev))
         rec
     }
 
     /**
      * PD-001 + PF-01: Per-record locked, transactional read-modify-write with optimistic `rev` guard.
-     * If `mutator` throws, SQLite transaction rolls back completely — zero partial mutation or stale outbox entry!
      */
     suspend fun updateRecordAtomic(
         workspaceId: String,
@@ -161,6 +368,8 @@ class PlanadayRepository(
         referencedBlobHashes: List<String> = emptyList(),
         recordRevision: Boolean = false,
         checkpointLabel: String? = null,
+        scheduleStartIso: String? = null,
+        scheduleEndIso: String? = null,
         mutator: (CanonicalRecord) -> CanonicalRecord,
     ): CanonicalRecord = lockFor(recordId).withLock {
         var result: CanonicalRecord? = null
@@ -181,6 +390,7 @@ class PlanadayRepository(
                     updatedAtUtc = now,
                     deviceId = deviceId,
                 )
+                val (inferredStart, inferredEnd) = extractScheduleDates(updated.kind, updated.payloadJson)
                 val rows = db.recordDao().updateIfRevMatches(
                     id = existing.id,
                     workspaceId = existing.workspaceId,
@@ -197,6 +407,8 @@ class PlanadayRepository(
                     payloadJson = updated.payloadJson,
                     extraFieldsJson = updated.extraFieldsJson,
                     deviceId = deviceId,
+                    scheduleStartIso = scheduleStartIso ?: inferredStart ?: existingEntity.scheduleStartIso,
+                    scheduleEndIso = scheduleEndIso ?: inferredEnd ?: existingEntity.scheduleEndIso,
                 )
                 if (rows != 1) {
                     throw OptimisticConflictException("Revision conflict updating $recordId (expected rev=${existing.rev})")
@@ -222,21 +434,20 @@ class PlanadayRepository(
                 result = updated
             }
         }
-        result!!
+        val finalRec = result!!
+        _mutations.tryEmit(RecordMutationEvent(workspaceId, finalRec.id, finalRec.kind, finalRec.rev))
+        finalRec
     }
 
-    /** Soft-deletes into 30-day Trash (recoverable) and queues sync update atomically. */
     suspend fun moveToTrash(workspaceId: String, recordId: String): CanonicalRecord =
         updateRecordAtomic(workspaceId, recordId) { it.copy(deletedAtUtc = clock.nowUtcIso()) }
 
-    /** Restores a soft-deleted record from 30-day Trash. */
     suspend fun restoreFromTrash(workspaceId: String, recordId: String): CanonicalRecord =
         updateRecordAtomic(workspaceId, recordId) { it.copy(deletedAtUtc = null) }
 
     suspend fun listTrash(workspaceId: String): List<CanonicalRecord> =
         db.recordDao().listTrash(workspaceId).map { it.toModel(json) }
 
-    /** Confirmed permanent purge from Trash with reference-counted blob cleanup. */
     suspend fun purgeFromTrash(workspaceId: String, recordId: String) = lockFor(recordId).withLock {
         val now = clock.nowUtcIso()
         val orphanHashes = mutableListOf<String>()
@@ -264,7 +475,6 @@ class PlanadayRepository(
         for (h in orphanHashes) blobStore.deleteUnreferenced(h)
     }
 
-    /** Stores binary attachment bytes with SHA-256 verification and creates workspace-scoped reference. */
     suspend fun attachBlobToRecord(
         workspaceId: String,
         recordId: String,
@@ -369,7 +579,6 @@ class PlanadayRepository(
     suspend fun incomingLinks(workspaceId: String, targetId: String): List<RecordRelation> =
         db.relationDao().incoming(workspaceId, targetId).map { it.toModel() }
 
-    /** Creates an immutable SHA-256 evidence snapshot with provenance (PF-40, N-020). */
     suspend fun createEvidenceSnapshot(
         workspaceId: String,
         sourceRecordId: String,
@@ -409,10 +618,6 @@ class PlanadayRepository(
         return snap
     }
 
-    /**
-     * Indexed SQLite FTS5 search strictly filtered by [workspaceId] (PF-10, N-006, INT-014).
-     * Never leaks records from unauthorized workspaces or soft-deleted trash items.
-     */
     suspend fun searchAuthorizedFts5(workspaceId: String, rawQuery: String, limit: Int = 50): List<SearchHit> {
         val tokens = rawQuery.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
         if (tokens.isEmpty()) return emptyList()
@@ -447,14 +652,15 @@ class PlanadayRepository(
         }
     }
 
-    /** Applies an authoritative record pulled from the sync server without echoing back into outbox. */
     suspend fun applyPulledRecordFromServer(record: CanonicalRecord) = lockFor(record.id).withLock {
+        val (inferredStart, inferredEnd) = extractScheduleDates(record.kind, record.payloadJson)
         db.useWriterConnection { transactor ->
             transactor.immediateTransaction {
                 ensureWorkspaceExistsInsideTx(record.workspaceId)
-                db.recordDao().upsertForce(record.toEntity(json))
+                db.recordDao().upsertForce(record.toEntity(json, scheduleStartIso = inferredStart, scheduleEndIso = inferredEnd))
             }
         }
+        _mutations.tryEmit(RecordMutationEvent(record.workspaceId, record.id, record.kind, record.rev))
     }
 
     private suspend fun ensureWorkspaceExistsInsideTx(workspaceId: String) {
@@ -482,7 +688,6 @@ class PlanadayRepository(
         referencedBlobHashes: List<String>,
         now: String,
     ) {
-        // Coalesce pending unpushed ops for the same record while preserving earliest baseRev!
         val existingOps = db.syncDao().pendingOutbox(record.workspaceId, limit = 1000)
             .filter { it.recordId == record.id }
         val effectiveBaseRev = existingOps.minOfOrNull { it.baseRev } ?: baseRev
@@ -507,7 +712,6 @@ class PlanadayRepository(
         )
     }
 
-    // --- DraftPersistenceSink implementation (PD-016 + PF-55) ---
     override suspend fun saveDraft(draft: DraftRecord) {
         db.draftAndRevisionDao().saveDraft(
             DraftEntity(
@@ -529,19 +733,7 @@ class PlanadayRepository(
     }
 
     override suspend fun listDrafts(workspaceId: String): List<DraftRecord> =
-        db.draftAndRevisionDao().listDirtyDrafts(workspaceId).map {
-            DraftRecord(
-                sessionId = it.sessionId,
-                workspaceId = it.workspaceId,
-                recordId = it.recordId,
-                recordKind = RecordKind.valueOf(it.recordKind),
-                titleDraft = it.titleDraft,
-                bodyDraft = it.bodyDraft,
-                baseRev = it.baseRev,
-                updatedAtUtc = it.updatedAtUtc,
-                dirty = it.dirty,
-            )
-        }
+        db.draftAndRevisionDao().listDirtyDrafts(workspaceId).map { it.toDraftModel() }
 
     suspend fun saveBlobReceipt(receipt: BlobTransferReceipt) {
         db.syncDao().upsertBlobReceipt(
@@ -559,28 +751,11 @@ class PlanadayRepository(
     }
 
     suspend fun listBlobReceipts(workspaceId: String): List<BlobTransferReceipt> =
-        db.syncDao().listBlobReceipts(workspaceId).map {
-            BlobTransferReceipt(
-                sha256 = it.sha256,
-                workspaceId = it.workspaceId,
-                direction = BlobTransferDirection.valueOf(it.direction),
-                status = BlobTransferStatus.valueOf(it.status),
-                byteSize = it.byteSize,
-                attempts = it.attempts,
-                lastError = it.lastError,
-                updatedAtUtc = it.updatedAtUtc,
-            )
-        }
+        db.syncDao().listBlobReceipts(workspaceId).map { it.toReceiptModel() }
 
-    /** Lists all unresolved sync conflicts preserving both local & remote copies (N-042). */
     suspend fun listUnresolvedConflicts(workspaceId: String): List<SyncConflictEntity> =
         db.syncDao().listUnresolvedConflicts(workspaceId)
 
-    /**
-     * Resolves a sync conflict with explicit user choice — NEVER silently discards data (N-042):
-     * - ACCEPT_REMOTE: adopts remote record locally and marks conflict resolved.
-     * - KEEP_BOTH: accepts remote record under original ID AND saves local version as a brand-new linked copy!
-     */
     suspend fun resolveConflictKeepBoth(workspaceId: String, conflictId: String): CanonicalRecord {
         val conflict = db.syncDao().listUnresolvedConflicts(workspaceId).firstOrNull { it.id == conflictId }
             ?: throw NoSuchElementException("Conflict $conflictId not found")
@@ -609,7 +784,41 @@ class PlanadayRepository(
         db.syncDao().markConflictResolved(conflictId)
     }
 
+    suspend fun resolveConflictKeepLocal(workspaceId: String, conflictId: String): CanonicalRecord {
+        val conflict = db.syncDao().listUnresolvedConflicts(workspaceId).firstOrNull { it.id == conflictId }
+            ?: throw NoSuchElementException("Conflict $conflictId not found")
+        val localRec = json.decodeFromString<CanonicalRecord>(conflict.localRecordJson)
+        val remoteRec = json.decodeFromString<CanonicalRecord>(conflict.remoteRecordJson)
+        applyPulledRecordFromServer(remoteRec)
+        val reapplied = updateRecordAtomic(workspaceId, remoteRec.id, recordRevision = true, checkpointLabel = "Conflict resolved (keep local)") {
+            it.copy(title = localRec.title, payloadJson = localRec.payloadJson, summaryText = localRec.summaryText, tags = localRec.tags)
+        }
+        db.syncDao().markConflictResolved(conflictId)
+        return reapplied
+    }
+
+    /** Automatically extracts ISO date range bounds for indexed calendar queries without extra table scans. */
+    private fun extractScheduleDates(kind: RecordKind, payloadJson: String): Pair<String?, String?> = runCatching {
+        val obj = json.parseToJsonElement(payloadJson).jsonObject
+        fun str(key: String): String? = obj[key]?.jsonPrimitive?.content?.takeIf { it.length >= 10 && it[4] == '-' }
+        when (kind) {
+            RecordKind.EVENT -> str("startDateIso") to (str("endDateIso") ?: str("startDateIso"))
+            RecordKind.TASK -> (str("doDateIso") ?: str("dueDateIso")) to (str("dueDateIso") ?: str("doDateIso"))
+            RecordKind.CHORE -> str("nextDueDateIso") to str("nextDueDateIso")
+            RecordKind.DIARY, RecordKind.FOOD_LOG, RecordKind.MEAL_PLAN, RecordKind.EXPENSE -> {
+                val d = str("dateIso")
+                d to d
+            }
+            RecordKind.LAB_SAMPLE -> str("receivedDateIso") to (str("dueDateIso") ?: str("receivedDateIso"))
+            RecordKind.LAB_CALIBRATION -> str("nextDueDateIso") to str("nextDueDateIso")
+            RecordKind.TRIP -> str("departureDateIso") to (str("returnDateIso") ?: str("departureDateIso"))
+            else -> (str("dateIso") ?: str("targetDateIso") ?: str("startDateIso")) to (str("endDateIso") ?: str("dateIso") ?: str("targetDateIso"))
+        }
+    }.getOrDefault(null to null)
+
     companion object {
+        const val PREF_DEVICE_ID: String = "planaday.device_id"
+
         private fun WorkspaceEntity.toModel() = Workspace(
             id = id,
             name = name,
@@ -654,7 +863,13 @@ class PlanadayRepository(
             isSyntheticDemo = isSyntheticDemo,
         )
 
-        private fun CanonicalRecord.toEntity(json: Json, parentId: String? = null, sortOrder: Int = 0) = CanonicalRecordEntity(
+        private fun CanonicalRecord.toEntity(
+            json: Json,
+            parentId: String? = null,
+            sortOrder: Int = 0,
+            scheduleStartIso: String? = null,
+            scheduleEndIso: String? = null,
+        ) = CanonicalRecordEntity(
             id = id,
             workspaceId = workspaceId,
             kind = kind.name,
@@ -676,6 +891,8 @@ class PlanadayRepository(
             payloadJson = payloadJson,
             extraFieldsJson = extraFieldsJson,
             isSyntheticDemo = isSyntheticDemo,
+            scheduleStartIso = scheduleStartIso,
+            scheduleEndIso = scheduleEndIso,
         )
 
         private fun RelationEntity.toModel() = RecordRelation(
@@ -689,6 +906,39 @@ class PlanadayRepository(
             sortOrder = sortOrder,
             label = label,
             createdAtUtc = createdAtUtc,
+        )
+
+        private fun DraftEntity.toDraftModel() = DraftRecord(
+            sessionId = sessionId,
+            workspaceId = workspaceId,
+            recordId = recordId,
+            recordKind = RecordKind.valueOf(recordKind),
+            titleDraft = titleDraft,
+            bodyDraft = bodyDraft,
+            baseRev = baseRev,
+            updatedAtUtc = updatedAtUtc,
+            dirty = dirty,
+        )
+
+        private fun BlobTransferReceiptEntity.toReceiptModel() = BlobTransferReceipt(
+            sha256 = sha256,
+            workspaceId = workspaceId,
+            direction = BlobTransferDirection.valueOf(direction),
+            status = BlobTransferStatus.valueOf(status),
+            byteSize = byteSize,
+            attempts = attempts,
+            lastError = lastError,
+            updatedAtUtc = updatedAtUtc,
+        )
+
+        private fun AttachmentEntity.toMetaModel() = AttachmentMeta(
+            sha256 = sha256,
+            mimeType = mimeType,
+            byteSize = byteSize,
+            originalFilename = originalFilename,
+            createdAtUtc = createdAtUtc,
+            localStorageRelPath = localStorageRelPath,
+            thumbnailRelPath = thumbnailRelPath,
         )
     }
 }

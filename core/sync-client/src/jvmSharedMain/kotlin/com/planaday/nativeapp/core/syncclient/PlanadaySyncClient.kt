@@ -7,6 +7,8 @@ import com.planaday.nativeapp.core.model.CanonicalRecord
 import com.planaday.nativeapp.core.model.RecordKind
 import com.planaday.nativeapp.core.persistence.*
 import com.planaday.nativeapp.core.security.CryptoPrimitives
+import com.planaday.nativeapp.core.security.SyncTransportSecurityPolicy
+import com.planaday.nativeapp.core.security.TransportValidationResult
 import com.planaday.nativeapp.core.syncprotocol.*
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -32,10 +34,18 @@ class PlanadaySyncClient(
     private val serverBaseUrl: String,
     private val bearerTokenProvider: () -> String?,
     private val clock: DomainClock = SystemDomainClock,
+    private val allowDevelopmentHttp: Boolean = false,
 ) {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
-    private fun baseUrl(): String = serverBaseUrl.trimEnd('/')
+    private fun baseUrl(): String {
+        val raw = serverBaseUrl.trimEnd('/')
+        if (raw.isEmpty()) return "" // Ktor test host relative URL
+        return when (val check = SyncTransportSecurityPolicy.validateServerUrl(raw, allowDevelopmentHttp)) {
+            is TransportValidationResult.Valid -> check.normalizedUrl
+            is TransportValidationResult.Rejected -> throw SecurityException(check.reason)
+        }
+    }
 
     suspend fun fetchHealth(): ServerHealthResponse =
         httpClient.get("${baseUrl()}/api/v1/health").body()

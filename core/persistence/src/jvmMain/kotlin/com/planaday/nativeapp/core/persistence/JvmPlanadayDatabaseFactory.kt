@@ -20,6 +20,7 @@ object JvmPlanadayDatabaseFactory {
             .setDriver(BundledSQLiteDriver())
             .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
             .setQueryCoroutineContext(Dispatchers.IO)
+            .addMigrations(PlanadayMigrations.MIGRATION_1_2)
             .addCallback(PlanadaySqlitePragmasAndFts)
             .build()
     }

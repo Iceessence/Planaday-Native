@@ -25,18 +25,67 @@ interface WorkspaceDao {
 interface RecordDao {
     @Query(
         "SELECT * FROM record_index WHERE workspace_id = :workspaceId AND kind = :kind AND deleted_at_utc IS NULL " +
-            "ORDER BY updated_at_utc DESC LIMIT :limit OFFSET :offset"
+            "ORDER BY updated_at_utc DESC, id DESC LIMIT :limit"
     )
-    fun observeByKind(workspaceId: String, kind: String, limit: Int = 200, offset: Int = 0): Flow<List<CanonicalRecordEntity>>
+    fun observeByKind(workspaceId: String, kind: String, limit: Int = 200): Flow<List<CanonicalRecordEntity>>
+
+    @Query(
+        "SELECT * FROM record_index WHERE workspace_id = :workspaceId AND kind = :kind AND deleted_at_utc IS NULL " +
+            "AND (schedule_start_iso IS NULL OR (schedule_start_iso <= :rangeEndIso AND COALESCE(schedule_end_iso, schedule_start_iso) >= :rangeStartIso)) " +
+            "ORDER BY schedule_start_iso ASC, updated_at_utc DESC LIMIT :limit"
+    )
+    fun observeScheduleWindow(
+        workspaceId: String,
+        kind: String,
+        rangeStartIso: String,
+        rangeEndIso: String,
+        limit: Int = 500,
+    ): Flow<List<CanonicalRecordEntity>>
+
+    @Query(
+        "SELECT * FROM record_index WHERE workspace_id = :workspaceId AND kind = :kind AND deleted_at_utc IS NULL " +
+            "AND schedule_start_iso IS NOT NULL AND schedule_start_iso <= :rangeEndIso AND COALESCE(schedule_end_iso, schedule_start_iso) >= :rangeStartIso " +
+            "ORDER BY schedule_start_iso ASC, id ASC LIMIT :limit"
+    )
+    suspend fun listScheduleWindow(
+        workspaceId: String,
+        kind: String,
+        rangeStartIso: String,
+        rangeEndIso: String,
+        limit: Int = 500,
+    ): List<CanonicalRecordEntity>
+
+    /** True O(log N) keyset pagination — avoids OFFSET table-scan degradation at 100k–1M records. */
+    @Query(
+        "SELECT * FROM record_index WHERE workspace_id = :workspaceId AND kind = :kind AND deleted_at_utc IS NULL " +
+            "AND (updated_at_utc < :cursorUpdatedAtUtc OR (updated_at_utc = :cursorUpdatedAtUtc AND id < :cursorId)) " +
+            "ORDER BY updated_at_utc DESC, id DESC LIMIT :limit"
+    )
+    suspend fun listByKindKeyset(
+        workspaceId: String,
+        kind: String,
+        cursorUpdatedAtUtc: String,
+        cursorId: String,
+        limit: Int = 100,
+    ): List<CanonicalRecordEntity>
+
+    @Query(
+        "SELECT * FROM record_index WHERE workspace_id = :workspaceId AND kind = :kind AND deleted_at_utc IS NULL " +
+            "ORDER BY updated_at_utc DESC, id DESC LIMIT :limit"
+    )
+    suspend fun listByKindBounded(workspaceId: String, kind: String, limit: Int = 200): List<CanonicalRecordEntity>
 
     @Query(
         "SELECT * FROM record_index WHERE workspace_id = :workspaceId AND deleted_at_utc IS NULL " +
-            "ORDER BY updated_at_utc DESC LIMIT :limit OFFSET :offset"
+            "ORDER BY updated_at_utc DESC, id DESC LIMIT :limit OFFSET :offset"
     )
     suspend fun listActive(workspaceId: String, limit: Int = 500, offset: Int = 0): List<CanonicalRecordEntity>
 
-    @Query("SELECT * FROM record_index WHERE workspace_id = :workspaceId AND kind = :kind AND deleted_at_utc IS NULL ORDER BY sort_order ASC, updated_at_utc DESC")
-    suspend fun listByKind(workspaceId: String, kind: String): List<CanonicalRecordEntity>
+    @Query(
+        "SELECT * FROM record_index WHERE workspace_id = :workspaceId AND kind = :kind AND deleted_at_utc IS NULL " +
+            "ORDER BY sort_order ASC, updated_at_utc DESC LIMIT :limit"
+    )
+    suspend fun listByKind(workspaceId: String, kind: String, limit: Int = 500): List<CanonicalRecordEntity>
 
     @Query("SELECT * FROM record_index WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): CanonicalRecordEntity?
@@ -44,11 +93,20 @@ interface RecordDao {
     @Query("SELECT * FROM record_index WHERE id = :id AND workspace_id = :workspaceId LIMIT 1")
     suspend fun getByIdInWorkspace(workspaceId: String, id: String): CanonicalRecordEntity?
 
-    @Query("SELECT * FROM record_index WHERE workspace_id = :workspaceId AND deleted_at_utc IS NOT NULL ORDER BY deleted_at_utc DESC")
-    suspend fun listTrash(workspaceId: String): List<CanonicalRecordEntity>
+    @Query("SELECT * FROM record_index WHERE workspace_id = :workspaceId AND deleted_at_utc IS NOT NULL ORDER BY deleted_at_utc DESC LIMIT :limit")
+    suspend fun listTrash(workspaceId: String, limit: Int = 250): List<CanonicalRecordEntity>
+
+    @Query("SELECT * FROM record_index WHERE workspace_id = :workspaceId AND deleted_at_utc IS NOT NULL ORDER BY deleted_at_utc DESC LIMIT :limit")
+    fun observeTrash(workspaceId: String, limit: Int = 250): Flow<List<CanonicalRecordEntity>>
 
     @Query("SELECT COUNT(*) FROM record_index WHERE workspace_id = :workspaceId AND deleted_at_utc IS NULL")
     suspend fun countActive(workspaceId: String): Long
+
+    @Query("SELECT COUNT(*) FROM record_index WHERE workspace_id = :workspaceId AND deleted_at_utc IS NULL")
+    fun observeActiveCount(workspaceId: String): Flow<Long>
+
+    @Query("SELECT COUNT(*) FROM record_index WHERE workspace_id = :workspaceId AND kind = :kind AND deleted_at_utc IS NULL")
+    suspend fun countByKind(workspaceId: String, kind: String): Long
 
     @Query("SELECT COUNT(*) FROM record_index")
     suspend fun countAllTotal(): Long
@@ -63,7 +121,8 @@ interface RecordDao {
         "UPDATE record_index SET title = :title, status = :status, rev = :newRev, updated_at_utc = :updatedAtUtc, " +
             "deleted_at_utc = :deletedAtUtc, parent_id = :parentId, sort_order = :sortOrder, " +
             "tags_json = :tagsJson, summary_text = :summaryText, payload_json = :payloadJson, " +
-            "extra_fields_json = :extraFieldsJson, device_id = :deviceId " +
+            "extra_fields_json = :extraFieldsJson, device_id = :deviceId, " +
+            "schedule_start_iso = :scheduleStartIso, schedule_end_iso = :scheduleEndIso " +
             "WHERE id = :id AND workspace_id = :workspaceId AND rev = :expectedRev"
     )
     suspend fun updateIfRevMatches(
@@ -82,6 +141,8 @@ interface RecordDao {
         payloadJson: String,
         extraFieldsJson: String,
         deviceId: String,
+        scheduleStartIso: String?,
+        scheduleEndIso: String?,
     ): Int
 
     @Query("DELETE FROM record_index WHERE id = :id AND workspace_id = :workspaceId")
@@ -102,8 +163,8 @@ interface RelationDao {
     @Query("SELECT * FROM relations WHERE workspace_id = :workspaceId AND target_id = :targetId ORDER BY sort_order ASC")
     suspend fun incoming(workspaceId: String, targetId: String): List<RelationEntity>
 
-    @Query("SELECT * FROM relations WHERE workspace_id = :workspaceId")
-    suspend fun listAllInWorkspace(workspaceId: String): List<RelationEntity>
+    @Query("SELECT * FROM relations WHERE workspace_id = :workspaceId LIMIT :limit")
+    suspend fun listAllInWorkspace(workspaceId: String, limit: Int = 2000): List<RelationEntity>
 
     @Query("DELETE FROM relations WHERE id = :id AND workspace_id = :workspaceId")
     suspend fun deleteById(workspaceId: String, id: String)
@@ -117,22 +178,25 @@ interface DraftAndRevisionDao {
     @Query("DELETE FROM drafts WHERE workspace_id = :workspaceId AND record_id = :recordId AND session_id = :sessionId")
     suspend fun deleteDraft(workspaceId: String, recordId: String, sessionId: String)
 
-    @Query("SELECT * FROM drafts WHERE workspace_id = :workspaceId AND dirty = 1 ORDER BY updated_at_utc DESC")
+    @Query("SELECT * FROM drafts WHERE workspace_id = :workspaceId AND dirty = 1 ORDER BY updated_at_utc DESC LIMIT 100")
     suspend fun listDirtyDrafts(workspaceId: String): List<DraftEntity>
+
+    @Query("SELECT * FROM drafts WHERE workspace_id = :workspaceId AND dirty = 1 ORDER BY updated_at_utc DESC LIMIT 100")
+    fun observeDirtyDrafts(workspaceId: String): Flow<List<DraftEntity>>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertRevision(revision: RevisionEntity)
 
-    @Query("SELECT * FROM revisions WHERE workspace_id = :workspaceId AND record_id = :recordId ORDER BY rev DESC")
+    @Query("SELECT * FROM revisions WHERE workspace_id = :workspaceId AND record_id = :recordId ORDER BY rev DESC LIMIT 100")
     suspend fun listRevisions(workspaceId: String, recordId: String): List<RevisionEntity>
 
-    @Query("SELECT * FROM revisions WHERE workspace_id = :workspaceId")
+    @Query("SELECT * FROM revisions WHERE workspace_id = :workspaceId LIMIT 2000")
     suspend fun listAllRevisions(workspaceId: String): List<RevisionEntity>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertEvidenceSnapshot(snapshot: EvidenceSnapshotEntity)
 
-    @Query("SELECT * FROM evidence_snapshots WHERE workspace_id = :workspaceId AND source_record_id = :sourceId ORDER BY created_at_utc DESC")
+    @Query("SELECT * FROM evidence_snapshots WHERE workspace_id = :workspaceId AND source_record_id = :sourceId ORDER BY created_at_utc DESC LIMIT 100")
     suspend fun listSnapshotsForSource(workspaceId: String, sourceId: String): List<EvidenceSnapshotEntity>
 }
 
@@ -143,6 +207,18 @@ interface AttachmentDao {
 
     @Query("SELECT * FROM attachments WHERE sha256 = :sha256 LIMIT 1")
     suspend fun getAttachment(sha256: String): AttachmentEntity?
+
+    @Query(
+        "SELECT DISTINCT a.* FROM attachments a INNER JOIN attachment_refs r ON a.sha256 = r.sha256 " +
+            "WHERE r.workspace_id = :workspaceId ORDER BY a.created_at_utc DESC LIMIT :limit"
+    )
+    fun observeWorkspaceAttachments(workspaceId: String, limit: Int = 200): Flow<List<AttachmentEntity>>
+
+    @Query(
+        "SELECT DISTINCT a.* FROM attachments a INNER JOIN attachment_refs r ON a.sha256 = r.sha256 " +
+            "WHERE r.workspace_id = :workspaceId ORDER BY a.created_at_utc DESC LIMIT :limit"
+    )
+    suspend fun listWorkspaceAttachments(workspaceId: String, limit: Int = 200): List<AttachmentEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRef(ref: AttachmentRefEntity)
@@ -173,6 +249,9 @@ interface PlannerBookmarkDao {
 
     @Query("SELECT COUNT(*) FROM planner_bookmarks WHERE workspace_id = :workspaceId AND book_id = :bookId")
     suspend fun countForBook(workspaceId: String, bookId: String): Int
+
+    @Query("DELETE FROM planner_bookmarks WHERE workspace_id = :workspaceId AND id = :id")
+    suspend fun deleteById(workspaceId: String, id: String)
 }
 
 @Dao
@@ -186,6 +265,9 @@ interface SyncDao {
     @Query("SELECT COUNT(*) FROM outbox_ops WHERE workspace_id = :workspaceId")
     suspend fun countPendingOutbox(workspaceId: String): Int
 
+    @Query("SELECT COUNT(*) FROM outbox_ops WHERE workspace_id = :workspaceId")
+    fun observePendingOutboxCount(workspaceId: String): Flow<Int>
+
     @Query("DELETE FROM outbox_ops WHERE op_id = :opId")
     suspend fun removeOutboxOp(opId: String)
 
@@ -197,6 +279,9 @@ interface SyncDao {
 
     @Query("SELECT * FROM conflicts WHERE workspace_id = :workspaceId AND resolved = 0 ORDER BY created_at_utc DESC")
     suspend fun listUnresolvedConflicts(workspaceId: String): List<SyncConflictEntity>
+
+    @Query("SELECT * FROM conflicts WHERE workspace_id = :workspaceId AND resolved = 0 ORDER BY created_at_utc DESC")
+    fun observeUnresolvedConflicts(workspaceId: String): Flow<List<SyncConflictEntity>>
 
     @Query("UPDATE conflicts SET resolved = 1 WHERE id = :id")
     suspend fun markConflictResolved(id: String)
@@ -213,15 +298,24 @@ interface SyncDao {
     @Query("SELECT * FROM blob_transfer_receipts WHERE workspace_id = :workspaceId")
     suspend fun listBlobReceipts(workspaceId: String): List<BlobTransferReceiptEntity>
 
+    @Query("SELECT * FROM blob_transfer_receipts WHERE workspace_id = :workspaceId")
+    fun observeBlobReceipts(workspaceId: String): Flow<List<BlobTransferReceiptEntity>>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun recordAutomationRun(run: AutomationRunEntity): Long
 
     @Query("SELECT COUNT(*) FROM automation_runs WHERE idempotency_key = :key")
     suspend fun hasAutomationRun(key: String): Int
 
+    @Query("SELECT * FROM automation_runs WHERE workspace_id = :workspaceId ORDER BY executed_at_utc DESC LIMIT :limit")
+    fun observeAutomationRuns(workspaceId: String, limit: Int = 100): Flow<List<AutomationRunEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun savePreference(pref: AppPreferenceEntity)
 
     @Query("SELECT * FROM app_preferences WHERE key = :key LIMIT 1")
     suspend fun getPreference(key: String): AppPreferenceEntity?
+
+    @Query("SELECT * FROM app_preferences WHERE key = :key LIMIT 1")
+    fun observePreference(key: String): Flow<AppPreferenceEntity?>
 }

@@ -1,0 +1,1232 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "d5ac1b99c86f51ccf38ffa5d9a4c2583",
+    "entities": [
+      {
+        "tableName": "workspaces",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `scope` TEXT NOT NULL, `accent_hex` TEXT NOT NULL, `icon_key` TEXT NOT NULL, `created_at_utc` TEXT NOT NULL, `updated_at_utc` TEXT NOT NULL, `is_default` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scope",
+            "columnName": "scope",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accentHex",
+            "columnName": "accent_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "iconKey",
+            "columnName": "icon_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtUtc",
+            "columnName": "created_at_utc",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtUtc",
+            "columnName": "updated_at_utc",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isDefault",
+            "columnName": "is_default",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "record_index",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `workspace_id` TEXT NOT NULL, `kind` TEXT NOT NULL, `title` TEXT NOT NULL, `status` TEXT NOT NULL, `rev` INTEGER NOT NULL, `schema_version` INTEGER NOT NULL, `created_at_utc` TEXT NOT NULL, `updated_at_utc` TEXT NOT NULL, `deleted_at_utc` TEXT, `device_id` TEXT NOT NULL, `parent_id` TEXT, `sort_order` INTEGER NOT NULL, `owner_profile_id` TEXT, `shared_with_all` INTEGER NOT NULL, `shared_profile_ids_json` TEXT NOT NULL, `tags_json` TEXT NOT NULL, `summary_text` TEXT NOT NULL, `payload_json` TEXT NOT NULL, `extra_fields_json` TEXT NOT NULL, `is_synthetic_demo` INTEGER NOT NULL, `schedule_start_iso` TEXT, `schedule_end_iso` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`workspace_id`) REFERENCES `workspaces`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workspaceId",
+            "columnName": "workspace_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rev",
+            "columnName": "rev",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "schemaVersion",
+            "columnName": "schema_version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtUtc",
+            "columnName": "created_at_utc",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtUtc",
+            "columnName": "updated_at_utc",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAtUtc",
+            "columnName": "deleted_at_utc",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "device_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parentId",
+            "columnName": "parent_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sortOrder",
+            "columnName": "sort_order",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ownerProfileId",
+            "columnName": "owner_profile_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sharedWithAll",
+            "columnName": "shared_with_all",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sharedProfileIdsJson",
+            "columnName": "shared_profile_ids_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tagsJson",
+            "columnName": "tags_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "summaryText",
+            "columnName": "summary_text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payloadJson",
+            "columnName": "payload_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "extraFieldsJson",
+            "columnName": "extra_fields_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isSyntheticDemo",
+            "columnName": "is_synthetic_demo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scheduleStartIso",
+            "columnName": "schedule_start_iso",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "scheduleEndIso",
+            "columnName": "schedule_end_iso",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_record_index_workspace_id_kind_updated_at_utc",
+            "unique": false,
+            "columnNames": [
+              "workspace_id",
+              "kind",
+              "updated_at_utc"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_record_index_workspace_id_kind_updated_at_utc` ON `${TABLE_NAME}` (`workspace_id`, `kind`, `updated_at_utc`)"
+          },
+          {
+            "name": "index_record_index_workspace_id_kind_deleted_at_utc_updated_at_utc_id",
+            "unique": false,
+            "columnNames": [
+              "workspace_id",
+              "kind",
+              "deleted_at_utc",
+              "updated_at_utc",
+              "id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_record_index_workspace_id_kind_deleted_at_utc_updated_at_utc_id` ON `${TABLE_NAME}` (`workspace_id`, `kind`, `deleted_at_utc`, `updated_at_utc`, `id`)"
+          },
+          {
+            "name": "index_record_index_workspace_id_kind_schedule_start_iso_schedule_end_iso",
+            "unique": false,
+            "columnNames": [
+              "workspace_id",
+              "kind",
+              "schedule_start_iso",
+              "schedule_end_iso"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_record_index_workspace_id_kind_schedule_start_iso_schedule_end_iso` ON `${TABLE_NAME}` (`workspace_id`, `kind`, `schedule_start_iso`, `schedule_end_iso`)"
+          },
+          {
+            "name": "index_record_index_workspace_id_deleted_at_utc",
+            "unique": false,
+            "columnNames": [
+              "workspace_id",
+              "deleted_at_utc"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_record_index_workspace_id_deleted_at_utc` ON `${TABLE_NAME}` (`workspace_id`, `deleted_at_utc`)"
+          },
+          {
+            "name": "index_record_index_workspace_id_status_kind",
+            "unique": false,
+            "columnNames": [
+              "workspace_id",
+              "status",
+              "kind"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_record_index_workspace_id_status_kind` ON `${TABLE_NAME}` (`workspace_id`, `status`, `kind`)"
+          },
+          {
+            "name": "index_record_index_workspace_id_parent_id_sort_order",
+            "unique": false,
+            "columnNames": [
+              "workspace_id",
+              "parent_id",
+              "sort_order"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_record_index_workspace_id_parent_id_sort_order` ON `${TABLE_NAME}` (`workspace_id`, `parent_id`, `sort_order`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "workspaces",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "workspace_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "relations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `workspace_id` TEXT NOT NULL, `source_id` TEXT NOT NULL, `source_kind` TEXT NOT NULL, `target_id` TEXT NOT NULL, `target_kind` TEXT NOT NULL, `relation_kind` TEXT NOT NULL, `sort_order` INTEGER NOT NULL, `label` TEXT, `created_at_utc` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workspaceId",
+            "columnName": "workspace_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceId",
+            "columnName": "source_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceKind",
+            "columnName": "source_kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetId",
+            "columnName": "target_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetKind",
+            "columnName": "target_kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "relationKind",
+            "columnName": "relation_kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortOrder",
+            "columnName": "sort_order",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "label",
+            "columnName": "label",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAtUtc",
+            "columnName": "created_at_utc",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_relations_workspace_id_source_id_relation_kind",
+            "unique": false,
+            "columnNames": [
+              "workspace_id",
+              "source_id",
+              "relation_kind"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_relations_workspace_id_source_id_relation_kind` ON `${TABLE_NAME}` (`workspace_id`, `source_id`, `relation_kind`)"
+          },
+          {
+            "name": "index_relations_workspace_id_target_id_relation_kind",
+            "unique": false,
+            "columnNames": [
+              "workspace_id",
+              "target_id",
+              "relation_kind"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_relations_workspace_id_target_id_relation_kind` ON `${TABLE_NAME}` (`workspace_id`, `target_id`, `relation_kind`)"
+          }
+        ]
+      },
+      {
+        "tableName": "drafts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`session_id` TEXT NOT NULL, `workspace_id` TEXT NOT NULL, `record_id` TEXT NOT NULL, `record_kind` TEXT NOT NULL, `title_draft` TEXT NOT NULL, `body_draft` TEXT NOT NULL, `base_rev` INTEGER NOT NULL, `updated_at_utc` TEXT NOT NULL, `dirty` INTEGER NOT NULL, PRIMARY KEY(`workspace_id`, `record_id`, `session_id`))",
+        "fields": [
+          {
+            "fieldPath": "sessionId",
+            "columnName": "session_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workspaceId",
+            "columnName": "workspace_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recordId",
+            "columnName": "record_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recordKind",
+            "columnName": "record_kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "titleDraft",
+            "columnName": "title_draft",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bodyDraft",
+            "columnName": "body_draft",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "baseRev",
+            "columnName": "base_rev",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtUtc",
+            "columnName": "updated_at_utc",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dirty",
+            "columnName": "dirty",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "workspace_id",
+            "record_id",
+            "session_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_drafts_workspace_id_dirty",
+            "unique": false,
+            "columnNames": [
+              "workspace_id",
+              "dirty"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_drafts_workspace_id_dirty` ON `${TABLE_NAME}` (`workspace_id`, `dirty`)"
+          }
+        ]
+      },
+      {
+        "tableName": "revisions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `workspace_id` TEXT NOT NULL, `record_id` TEXT NOT NULL, `record_kind` TEXT NOT NULL, `rev` INTEGER NOT NULL, `title` TEXT NOT NULL, `content_snapshot` TEXT NOT NULL, `checkpoint_label` TEXT, `created_at_utc` TEXT NOT NULL, `device_id` TEXT NOT NULL, `is_immutable_evidence` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workspaceId",
+            "columnName": "workspace_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recordId",
+            "columnName": "record_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recordKind",
+            "columnName": "record_kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rev",
+            "columnName": "rev",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contentSnapshot",
+            "columnName": "content_snapshot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "checkpointLabel",
+            "columnName": "checkpoint_label",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAtUtc",
+            "columnName": "created_at_utc",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "device_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isImmutableEvidence",
+            "columnName": "is_immutable_evidence",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_revisions_workspace_id_record_id_created_at_utc",
+            "unique": false,
+            "columnNames": [
+              "workspace_id",
+              "record_id",
+              "created_at_utc"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_revisions_workspace_id_record_id_created_at_utc` ON `${TABLE_NAME}` (`workspace_id`, `record_id`, `created_at_utc`)"
+          }
+        ]
+      },
+      {
+        "tableName": "evidence_snapshots",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `workspace_id` TEXT NOT NULL, `source_record_id` TEXT NOT NULL, `source_kind` TEXT NOT NULL, `source_rev` INTEGER NOT NULL, `title` TEXT NOT NULL, `content_json` TEXT NOT NULL, `content_sha256` TEXT NOT NULL, `provenance_note` TEXT NOT NULL, `created_at_utc` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workspaceId",
+            "columnName": "workspace_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceRecordId",
+            "columnName": "source_record_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceKind",
+            "columnName": "source_kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceRev",
+            "columnName": "source_rev",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contentJson",
+            "columnName": "content_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contentSha256",
+            "columnName": "content_sha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "provenanceNote",
+            "columnName": "provenance_note",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtUtc",
+            "columnName": "created_at_utc",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_evidence_snapshots_workspace_id_source_record_id",
+            "unique": false,
+            "columnNames": [
+              "workspace_id",
+              "source_record_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_evidence_snapshots_workspace_id_source_record_id` ON `${TABLE_NAME}` (`workspace_id`, `source_record_id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "attachments",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sha256` TEXT NOT NULL, `mime_type` TEXT NOT NULL, `byte_size` INTEGER NOT NULL, `original_filename` TEXT NOT NULL, `created_at_utc` TEXT NOT NULL, `local_storage_rel_path` TEXT NOT NULL, `thumbnail_rel_path` TEXT, PRIMARY KEY(`sha256`))",
+        "fields": [
+          {
+            "fieldPath": "sha256",
+            "columnName": "sha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mimeType",
+            "columnName": "mime_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "byteSize",
+            "columnName": "byte_size",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "originalFilename",
+            "columnName": "original_filename",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtUtc",
+            "columnName": "created_at_utc",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "localStorageRelPath",
+            "columnName": "local_storage_rel_path",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "thumbnailRelPath",
+            "columnName": "thumbnail_rel_path",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "sha256"
+          ]
+        }
+      },
+      {
+        "tableName": "attachment_refs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `workspace_id` TEXT NOT NULL, `record_id` TEXT NOT NULL, `sha256` TEXT NOT NULL, `role` TEXT NOT NULL, `created_at_utc` TEXT NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`sha256`) REFERENCES `attachments`(`sha256`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workspaceId",
+            "columnName": "workspace_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recordId",
+            "columnName": "record_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sha256",
+            "columnName": "sha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "role",
+            "columnName": "role",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtUtc",
+            "columnName": "created_at_utc",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_attachment_refs_workspace_id_record_id",
+            "unique": false,
+            "columnNames": [
+              "workspace_id",
+              "record_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_attachment_refs_workspace_id_record_id` ON `${TABLE_NAME}` (`workspace_id`, `record_id`)"
+          },
+          {
+            "name": "index_attachment_refs_workspace_id_sha256",
+            "unique": false,
+            "columnNames": [
+              "workspace_id",
+              "sha256"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_attachment_refs_workspace_id_sha256` ON `${TABLE_NAME}` (`workspace_id`, `sha256`)"
+          },
+          {
+            "name": "index_attachment_refs_sha256",
+            "unique": false,
+            "columnNames": [
+              "sha256"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_attachment_refs_sha256` ON `${TABLE_NAME}` (`sha256`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "attachments",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "sha256"
+            ],
+            "referencedColumns": [
+              "sha256"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "planner_bookmarks",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `book_id` TEXT NOT NULL, `workspace_id` TEXT NOT NULL, `page_id` TEXT NOT NULL, `label` TEXT NOT NULL, `color_hex` TEXT NOT NULL, `sort_order` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bookId",
+            "columnName": "book_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workspaceId",
+            "columnName": "workspace_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageId",
+            "columnName": "page_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "label",
+            "columnName": "label",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "colorHex",
+            "columnName": "color_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortOrder",
+            "columnName": "sort_order",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_planner_bookmarks_workspace_id_book_id_sort_order",
+            "unique": false,
+            "columnNames": [
+              "workspace_id",
+              "book_id",
+              "sort_order"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_planner_bookmarks_workspace_id_book_id_sort_order` ON `${TABLE_NAME}` (`workspace_id`, `book_id`, `sort_order`)"
+          }
+        ]
+      },
+      {
+        "tableName": "outbox_ops",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`op_id` TEXT NOT NULL, `workspace_id` TEXT NOT NULL, `record_id` TEXT NOT NULL, `record_kind` TEXT NOT NULL, `operation` TEXT NOT NULL, `base_rev` INTEGER NOT NULL, `schema_version` INTEGER NOT NULL, `record_json` TEXT, `referenced_blob_hashes_json` TEXT NOT NULL, `device_id` TEXT NOT NULL, `created_at_utc` TEXT NOT NULL, `attempts` INTEGER NOT NULL, `last_error` TEXT, PRIMARY KEY(`op_id`))",
+        "fields": [
+          {
+            "fieldPath": "opId",
+            "columnName": "op_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workspaceId",
+            "columnName": "workspace_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recordId",
+            "columnName": "record_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recordKind",
+            "columnName": "record_kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "operation",
+            "columnName": "operation",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "baseRev",
+            "columnName": "base_rev",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "schemaVersion",
+            "columnName": "schema_version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recordJson",
+            "columnName": "record_json",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "referencedBlobHashesJson",
+            "columnName": "referenced_blob_hashes_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "device_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtUtc",
+            "columnName": "created_at_utc",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attempts",
+            "columnName": "attempts",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastError",
+            "columnName": "last_error",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "op_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_outbox_ops_workspace_id_created_at_utc",
+            "unique": false,
+            "columnNames": [
+              "workspace_id",
+              "created_at_utc"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_outbox_ops_workspace_id_created_at_utc` ON `${TABLE_NAME}` (`workspace_id`, `created_at_utc`)"
+          },
+          {
+            "name": "index_outbox_ops_record_id",
+            "unique": false,
+            "columnNames": [
+              "record_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_outbox_ops_record_id` ON `${TABLE_NAME}` (`record_id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "conflicts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `workspace_id` TEXT NOT NULL, `record_id` TEXT NOT NULL, `record_kind` TEXT NOT NULL, `local_record_json` TEXT NOT NULL, `remote_record_json` TEXT NOT NULL, `reason` TEXT NOT NULL, `created_at_utc` TEXT NOT NULL, `resolved` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workspaceId",
+            "columnName": "workspace_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recordId",
+            "columnName": "record_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recordKind",
+            "columnName": "record_kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "localRecordJson",
+            "columnName": "local_record_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteRecordJson",
+            "columnName": "remote_record_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reason",
+            "columnName": "reason",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtUtc",
+            "columnName": "created_at_utc",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "resolved",
+            "columnName": "resolved",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_conflicts_workspace_id_resolved",
+            "unique": false,
+            "columnNames": [
+              "workspace_id",
+              "resolved"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_conflicts_workspace_id_resolved` ON `${TABLE_NAME}` (`workspace_id`, `resolved`)"
+          }
+        ]
+      },
+      {
+        "tableName": "sync_cursors",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`workspace_id` TEXT NOT NULL, `bound_server_id` TEXT, `bound_sync_epoch` INTEGER, `last_cursor` INTEGER NOT NULL, `last_sync_at_utc` TEXT, `restored_from_backup_at_utc` TEXT, PRIMARY KEY(`workspace_id`))",
+        "fields": [
+          {
+            "fieldPath": "workspaceId",
+            "columnName": "workspace_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "boundServerId",
+            "columnName": "bound_server_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "boundSyncEpoch",
+            "columnName": "bound_sync_epoch",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lastCursor",
+            "columnName": "last_cursor",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncAtUtc",
+            "columnName": "last_sync_at_utc",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "restoredFromBackupAtUtc",
+            "columnName": "restored_from_backup_at_utc",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "workspace_id"
+          ]
+        }
+      },
+      {
+        "tableName": "blob_transfer_receipts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sha256` TEXT NOT NULL, `workspace_id` TEXT NOT NULL, `direction` TEXT NOT NULL, `status` TEXT NOT NULL, `byte_size` INTEGER NOT NULL, `attempts` INTEGER NOT NULL, `last_error` TEXT, `updated_at_utc` TEXT NOT NULL, PRIMARY KEY(`workspace_id`, `sha256`, `direction`))",
+        "fields": [
+          {
+            "fieldPath": "sha256",
+            "columnName": "sha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workspaceId",
+            "columnName": "workspace_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "direction",
+            "columnName": "direction",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "byteSize",
+            "columnName": "byte_size",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attempts",
+            "columnName": "attempts",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastError",
+            "columnName": "last_error",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "updatedAtUtc",
+            "columnName": "updated_at_utc",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "workspace_id",
+            "sha256",
+            "direction"
+          ]
+        }
+      },
+      {
+        "tableName": "automation_runs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idempotency_key` TEXT NOT NULL, `rule_id` TEXT NOT NULL, `workspace_id` TEXT NOT NULL, `executed_at_utc` TEXT NOT NULL, `status` TEXT NOT NULL, PRIMARY KEY(`idempotency_key`))",
+        "fields": [
+          {
+            "fieldPath": "idempotencyKey",
+            "columnName": "idempotency_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ruleId",
+            "columnName": "rule_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workspaceId",
+            "columnName": "workspace_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "executedAtUtc",
+            "columnName": "executed_at_utc",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "idempotency_key"
+          ]
+        }
+      },
+      {
+        "tableName": "app_preferences",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`key` TEXT NOT NULL, `value_json` TEXT NOT NULL, `rev` INTEGER NOT NULL, `updated_at_utc` TEXT NOT NULL, PRIMARY KEY(`key`))",
+        "fields": [
+          {
+            "fieldPath": "key",
+            "columnName": "key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "valueJson",
+            "columnName": "value_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rev",
+            "columnName": "rev",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtUtc",
+            "columnName": "updated_at_utc",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "key"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd5ac1b99c86f51ccf38ffa5d9a4c2583')"
+    ]
+  }
+}
