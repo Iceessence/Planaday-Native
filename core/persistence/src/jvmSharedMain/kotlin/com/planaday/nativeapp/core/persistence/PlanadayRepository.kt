@@ -572,6 +572,43 @@ class PlanadayRepository(
             )
         }
 
+    /** Lists all unresolved sync conflicts preserving both local & remote copies (N-042). */
+    suspend fun listUnresolvedConflicts(workspaceId: String): List<SyncConflictEntity> =
+        db.syncDao().listUnresolvedConflicts(workspaceId)
+
+    /**
+     * Resolves a sync conflict with explicit user choice — NEVER silently discards data (N-042):
+     * - ACCEPT_REMOTE: adopts remote record locally and marks conflict resolved.
+     * - KEEP_BOTH: accepts remote record under original ID AND saves local version as a brand-new linked copy!
+     */
+    suspend fun resolveConflictKeepBoth(workspaceId: String, conflictId: String): CanonicalRecord {
+        val conflict = db.syncDao().listUnresolvedConflicts(workspaceId).firstOrNull { it.id == conflictId }
+            ?: throw NoSuchElementException("Conflict $conflictId not found")
+        val localRec = json.decodeFromString<CanonicalRecord>(conflict.localRecordJson)
+        val remoteRec = json.decodeFromString<CanonicalRecord>(conflict.remoteRecordJson)
+        applyPulledRecordFromServer(remoteRec)
+        val preservedCopy = createRecord(
+            workspaceId = workspaceId,
+            kind = localRec.kind,
+            title = "${localRec.title} (Conflict Copy)",
+            payloadJson = localRec.payloadJson,
+            summaryText = localRec.summaryText,
+            tags = (localRec.tags + "conflict-copy").distinct(),
+            recordRevision = true,
+        )
+        linkRecords(workspaceId, preservedCopy.id, preservedCopy.kind, remoteRec.id, remoteRec.kind, RelationKind.DERIVED_FROM, "Conflict copy")
+        db.syncDao().markConflictResolved(conflictId)
+        return preservedCopy
+    }
+
+    suspend fun resolveConflictAcceptRemote(workspaceId: String, conflictId: String) {
+        val conflict = db.syncDao().listUnresolvedConflicts(workspaceId).firstOrNull { it.id == conflictId }
+            ?: throw NoSuchElementException("Conflict $conflictId not found")
+        val remoteRec = json.decodeFromString<CanonicalRecord>(conflict.remoteRecordJson)
+        applyPulledRecordFromServer(remoteRec)
+        db.syncDao().markConflictResolved(conflictId)
+    }
+
     companion object {
         private fun WorkspaceEntity.toModel() = Workspace(
             id = id,

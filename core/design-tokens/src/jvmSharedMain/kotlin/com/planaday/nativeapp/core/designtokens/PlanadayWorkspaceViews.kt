@@ -1,6 +1,8 @@
 package com.planaday.nativeapp.core.designtokens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,12 +13,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.planaday.nativeapp.core.documents.LargeDocumentAnalyzer
 import com.planaday.nativeapp.core.domain.*
+import com.planaday.nativeapp.core.graphics.PhotoAndPlannerAdvanced
 import com.planaday.nativeapp.core.graphics.PhysicalPlannerEngine
 import com.planaday.nativeapp.core.interchange.Rfc5545IcsCodec
 import com.planaday.nativeapp.core.math.*
@@ -91,6 +97,14 @@ fun PlanadayActiveWorkspaceStage(
                 ChoresPanel(state, controller)
             PlanadayRoute.NOTES ->
                 NotesAndDraftsPanel(state, controller)
+            PlanadayRoute.DIARY ->
+                DiaryAndWellnessPanel(state, controller)
+            PlanadayRoute.CLOCK_WORLD, PlanadayRoute.ALARMS, PlanadayRoute.TIMERS, PlanadayRoute.STOPWATCH, PlanadayRoute.COUNTDOWNS ->
+                TimeSuitePanel(state.activeRoute, state, controller)
+            PlanadayRoute.WHITEBOARD ->
+                WhiteboardCanvasPanel()
+            PlanadayRoute.RECIPES, PlanadayRoute.PANTRY, PlanadayRoute.MEAL_PLANNER, PlanadayRoute.GROCERIES, PlanadayRoute.FINANCE ->
+                KitchenAndFinancePanel(state.activeRoute, state, controller)
             PlanadayRoute.LAB_WORKSPACE ->
                 Laboratory15SuitePanel(state, controller)
             PlanadayRoute.CALCULATOR ->
@@ -101,6 +115,12 @@ fun PlanadayActiveWorkspaceStage(
                 PhysicalPlannerPanel()
             PlanadayRoute.CODE_STUDIO ->
                 CodeStudioDebuggerPanel()
+            PlanadayRoute.PROJECTS, PlanadayRoute.GAME_DEV, PlanadayRoute.BOOK_STUDIO, PlanadayRoute.PRESENTATIONS, PlanadayRoute.PHOTO_STUDIO, PlanadayRoute.SPACED_REVIEW, PlanadayRoute.REPORTS, PlanadayRoute.AUTOMATIONS ->
+                CreativeAndProjectsPanel(state.activeRoute, state, controller)
+            PlanadayRoute.HOUSEHOLD, PlanadayRoute.PEOPLE_GIFTS, PlanadayRoute.HEALTH_MEDS, PlanadayRoute.MEDIA_HOBBIES, PlanadayRoute.TRAVEL, PlanadayRoute.HOME_ASSETS ->
+                LifeAndHouseholdPanel(state.activeRoute, state, controller)
+            PlanadayRoute.UNIVERSAL_FILES, PlanadayRoute.HISTORY_REVIEWS, PlanadayRoute.INSIGHTS, PlanadayRoute.CUSTOM_SPACES, PlanadayRoute.RITUALS, PlanadayRoute.GUIDE ->
+                FilesInsightsAndGuidePanel(state.activeRoute, state, controller)
             PlanadayRoute.TRASH ->
                 TrashRecoveryPanel(state, controller)
             PlanadayRoute.SETTINGS ->
@@ -500,6 +520,9 @@ private fun Laboratory15SuitePanel(state: PlanadayUiState, controller: PlanadayW
     var wetVal by remember { mutableStateOf("12.40") }
     var nirVal by remember { mutableStateOf("12.55") }
     val summary = remember(state.labWetNirPairs) { LabAnalyticsEngine.compareWetVsNir(state.labWetNirPairs) }
+    var uncertaintySummary by remember { mutableStateOf<String?>(null) }
+    var quoteSummary by remember { mutableStateOf<String?>(null) }
+    var custodyLog by remember { mutableStateOf("Received -> Ready for Prepared/In-Progress transition") }
 
     LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
         item {
@@ -544,6 +567,83 @@ private fun Laboratory15SuitePanel(state: PlanadayUiState, controller: PlanadayW
                     if (summary.mixedUnitsWarning) {
                         Text("WARNING: Mixed measurement units detected (${summary.units.joinToString()})!", color = MaterialTheme.colorScheme.error)
                     }
+                    // Live Compose Canvas Wet vs NIR Scatter Plot + y=x Identity Line (R-0164)
+                    val axisColor = MaterialTheme.colorScheme.outline
+                    val identityColor = MaterialTheme.colorScheme.secondary
+                    val pointColor = MaterialTheme.colorScheme.primary
+                    Canvas(
+                        modifier = Modifier.fillMaxWidth().height(150.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
+                            .semantics { contentDescription = "Wet chemistry versus NIR scatter plot with identity line" }
+                    ) {
+                        val pad = 18f
+                        val w = size.width - pad * 2
+                        val h = size.height - pad * 2
+                        // Axes & y=x Identity line
+                        drawLine(axisColor, Offset(pad, size.height - pad), Offset(size.width - pad, size.height - pad), strokeWidth = 2f)
+                        drawLine(axisColor, Offset(pad, pad), Offset(pad, size.height - pad), strokeWidth = 2f)
+                        drawLine(identityColor, Offset(pad, size.height - pad), Offset(size.width - pad, pad), strokeWidth = 2f)
+
+                        val pts = summary.includedPoints
+                        if (pts.isNotEmpty()) {
+                            val allVals = pts.flatMap { listOf(it.wetMean, it.nirMean) }
+                            val minV = (allVals.minOrNull() ?: 0.0) - 1.0
+                            val maxV = (allVals.maxOrNull() ?: 10.0) + 1.0
+                            val span = (maxV - minV).coerceAtLeast(1e-6)
+                            pts.forEach { p ->
+                                val x = pad + (((p.wetMean - minV) / span) * w).toFloat()
+                                val y = size.height - pad - (((p.nirMean - minV) / span) * h).toFloat()
+                                drawCircle(pointColor, radius = 6f, center = Offset(x, y))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        item {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Lab Operations: Custody Sign-Off, Client Pricing & GUM Uncertainty (PF-23..PF-25, PF-56)", fontWeight = FontWeight.SemiBold)
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = {
+                                val u = LaboratoryOperationsEngine.computeUncertaintyBudget(
+                                    listOf(UncertaintyComponent("Repeatability", 0.08), UncertaintyComponent("Calibration Std", 0.06)),
+                                    coverageFactorK = 2.0,
+                                    methodVersion = "AOAC-930.15-v2",
+                                )
+                                val v1 = LabAnalyticsEngine.dilutionVolumeV1(10.0, 2.5, 100.0)
+                                val rec = LabAnalyticsEngine.percentRecovery(10.2, 0.2, 10.0)
+                                uncertaintySummary = "GUM uc=${"%.4f".format(u.combinedStandardUncertainty)}, U(k=2)=${"%.4f".format(u.expandedUncertainty)} | Dilution V1=${v1}mL | Recovery=${"%.1f".format(rec)}%"
+                            },
+                            modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Compute GUM uncertainty and lab dilution" },
+                        ) { Text("GUM & Dilution") }
+                        OutlinedButton(
+                            onClick = {
+                                val q = LaboratoryOperationsEngine.computeClientQuote(
+                                    "Valley Grain Co.", "Wheat", listOf("MOIST", "PROT"),
+                                    listOf(
+                                        LabPricingRule("r1", "Valley Grain Co.", "Wheat", "MOIST", DecimalAmount("32.50", "USD"), 2),
+                                        LabPricingRule("r2", null, null, "PROT", DecimalAmount("48.00", "USD"), 3),
+                                    ),
+                                )
+                                quoteSummary = "Quote (${q.clientName}): ${q.totalAmount.value} ${q.totalAmount.unitOrCurrency} · Max TAT=${q.maxTurnaroundDays}d"
+                            },
+                            modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Compute lab client quote" },
+                        ) { Text("Client Quote") }
+                        OutlinedButton(
+                            onClick = {
+                                val today = SystemDomainClock.todayIso()
+                                val s = LabSample("s1", state.activeWorkspaceId, sampleId, "Client A", "Grain", listOf("MOIST"), today, today, status = "received")
+                                val next = LaboratoryOperationsEngine.transitionSampleWithCustody(s, "prepared", "Lead Analyst", "Prep Bench 2", SystemDomainClock.nowUtcIso())
+                                custodyLog = "Sample ${next.sampleCode} -> ${next.status} (${next.custodyEvents.size} signed event)"
+                            },
+                            modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Sign off sample custody transition" },
+                        ) { Text("Sign Custody") }
+                    }
+                    uncertaintySummary?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                    quoteSummary?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                    Text(custodyLog, style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
@@ -558,7 +658,10 @@ private fun CalculatorAndUnitsPanel() {
     var unitVal by remember { mutableStateOf("12") }
 
     val evalOutput = remember(expr) { runCatching { MathAstEngine.evaluate(expr).toString() }.getOrElse { "Error: ${it.message}" } }
-    val rootsOutput = remember(rootExpr) { runCatching { MathAstEngine.findNumericalRoots(rootExpr, -2.0, 2.0).joinToString() }.getOrElse { "Error: ${it.message}" } }
+    val rootsList = remember(rootExpr) { runCatching { MathAstEngine.findNumericalRoots(rootExpr, -5.0, 5.0) }.getOrDefault(emptyList()) }
+    val rootsOutput = remember(rootsList, rootExpr) {
+        runCatching { MathAstEngine.findNumericalRoots(rootExpr, -5.0, 5.0).joinToString() }.getOrElse { "Error: ${it.message}" }
+    }
     val catDef = UnitConverter23.categories[unitCat] ?: UnitConverter23.categories.values.first()
     val converted = remember(unitCat, unitVal) {
         val v = unitVal.toDoubleOrNull() ?: 0.0
@@ -571,11 +674,43 @@ private fun CalculatorAndUnitsPanel() {
         item {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("AST Scientific & Lab Calculator (Zero eval())", fontWeight = FontWeight.SemiBold)
+                    Text("AST Scientific & Lab Calculator + 2D Function Grapher (Zero eval())", fontWeight = FontWeight.SemiBold)
                     OutlinedTextField(value = expr, onValueChange = { expr = it }, label = { Text("Expression") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                     Text("Result = $evalOutput", fontWeight = FontWeight.Bold)
-                    OutlinedTextField(value = rootExpr, onValueChange = { rootExpr = it }, label = { Text("Pole-Safe Root Finder f(x)=0 on [-2,2] (PD-007)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    OutlinedTextField(value = rootExpr, onValueChange = { rootExpr = it }, label = { Text("Plot & Pole-Safe Roots f(x)=0 on [-5,5] (PD-007)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                     Text("Roots = [$rootsOutput]", style = MaterialTheme.typography.bodySmall)
+                    val curveCol = MaterialTheme.colorScheme.primary
+                    val rootCol = MaterialTheme.colorScheme.error
+                    val axisCol = MaterialTheme.colorScheme.outline
+                    Canvas(
+                        modifier = Modifier.fillMaxWidth().height(150.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
+                            .semantics { contentDescription = "2D function graph canvas for $rootExpr" }
+                    ) {
+                        val midY = size.height / 2f
+                        val midX = size.width / 2f
+                        drawLine(axisCol, Offset(0f, midY), Offset(size.width, midY), strokeWidth = 1.5f)
+                        drawLine(axisCol, Offset(midX, 0f), Offset(midX, size.height), strokeWidth = 1.5f)
+                        val path = Path()
+                        var started = false
+                        val steps = 120
+                        for (i in 0..steps) {
+                            val xVal = -5.0 + (10.0 * i / steps)
+                            val yVal = runCatching { MathAstEngine.evaluate(rootExpr, MathEvalContext(variables = mapOf("x" to xVal))) }.getOrNull()
+                            if (yVal != null && yVal.isFinite() && kotlin.math.abs(yVal) <= 10.0) {
+                                val px = (i.toFloat() / steps) * size.width
+                                val py = (midY - (yVal.toFloat() / 5f) * (size.height / 2f)).coerceIn(2f, size.height - 2f)
+                                if (!started) { path.moveTo(px, py); started = true } else path.lineTo(px, py)
+                            } else {
+                                started = false
+                            }
+                        }
+                        if (started) drawPath(path, color = curveCol, style = Stroke(width = 3f))
+                        rootsList.forEach { rx ->
+                            val px = (((rx + 5.0) / 10.0) * size.width).toFloat()
+                            drawCircle(rootCol, radius = 5f, center = Offset(px, midY))
+                        }
+                    }
                 }
             }
         }
@@ -629,24 +764,67 @@ private fun SpreadsheetStudioPanel() {
 
 @Composable
 private fun PhysicalPlannerPanel() {
-    var currentPage by remember { mutableStateOf(1) }
+    var pages by remember {
+        mutableStateOf(
+            listOf(
+                PlannerPage("pg_1", "book_1", "ws_personal", 1, "Cover & Year Index"),
+                PlannerPage("pg_2", "book_1", "ws_personal", 2, "Weekly Spread"),
+                PlannerPage("pg_3", "book_1", "ws_personal", 3, "Lab Notes Spread"),
+            )
+        )
+    }
+    var currentPageIdx by remember { mutableStateOf(0) }
+    var stickerCat by remember { mutableStateOf("Planning") }
     val visitedStates = remember { mutableStateListOf("CA", "WA") }
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Physical-Style Digital Planner · Spread Page $currentPage–${currentPage + 1}", fontWeight = FontWeight.SemiBold)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { if (currentPage > 1) currentPage -= 2 }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Prev Spread") }
-                Button(onClick = { currentPage += 2 }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Next Spread") }
+    val categories = remember { PhotoAndPlannerAdvanced.BUILT_IN_STICKER_CATALOG.map { it.category }.distinct() }
+    val stickersInCat = remember(stickerCat) { PhotoAndPlannerAdvanced.BUILT_IN_STICKER_CATALOG.filter { it.category == stickerCat } }
+
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
+        item {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val active = pages[currentPageIdx.coerceIn(pages.indices)]
+                    Text("Physical-Style Digital Planner · Page ${active.pageNumber}/${pages.size}: ${active.title}", fontWeight = FontWeight.SemiBold)
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = { if (currentPageIdx > 0) currentPageIdx-- },
+                            modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Previous planner page" },
+                        ) { Text("Prev") }
+                        Button(
+                            onClick = { if (currentPageIdx < pages.lastIndex) currentPageIdx++ },
+                            modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Next planner page" },
+                        ) { Text("Next") }
+                        OutlinedButton(
+                            onClick = {
+                                pages = PhotoAndPlannerAdvanced.duplicatePage(pages, active.id, "pg_${pages.size + 1}")
+                            },
+                            modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Duplicate current planner page" },
+                        ) { Text("Duplicate Page") }
+                    }
+                    Text("260 Newly Authored Vector Stickers (${PhotoAndPlannerAdvanced.BUILT_IN_STICKER_CATALOG.size} total):", fontWeight = FontWeight.Medium)
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        categories.forEach { c ->
+                            FilterChip(selected = stickerCat == c, onClick = { stickerCat = c }, label = { Text(c) })
+                        }
+                    }
+                    Text("${stickersInCat.size} stickers in '$stickerCat': ${stickersInCat.take(5).joinToString { it.label }}…", style = MaterialTheme.typography.bodySmall)
+                }
             }
-            Text("Interactive 50-State US Map Tracker (${visitedStates.size}/50 visited):", fontWeight = FontWeight.Medium)
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                PhysicalPlannerEngine.US_50_STATES.forEach { (code, name) ->
-                    val visited = code in visitedStates
-                    FilterChip(
-                        selected = visited,
-                        onClick = { if (visited) visitedStates.remove(code) else visitedStates.add(code) },
-                        label = { Text("$code · $name") },
-                    )
+        }
+        item {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Interactive 50-State US Map Tracker (${visitedStates.size}/50 visited):", fontWeight = FontWeight.Medium)
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        PhysicalPlannerEngine.US_50_STATES.forEach { (code, name) ->
+                            val visited = code in visitedStates
+                            FilterChip(
+                                selected = visited,
+                                onClick = { if (visited) visitedStates.remove(code) else visitedStates.add(code) },
+                                label = { Text("$code · $name") },
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -759,6 +937,40 @@ private fun SettingsSyncDiagnosticsPanel(state: PlanadayUiState, controller: Pla
                         modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Create and verify SHA-256 backup archive" },
                     ) { Text("Run Verified Backup Rehearsal") }
                     state.lastBackupSummary?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                }
+            }
+        }
+        item {
+            var localAssistOptIn by remember { mutableStateOf(false) }
+            val assistEngine = remember { LocalAssistanceEngine() }
+            var extStatus by remember { mutableStateOf("Declarative capability validator ready (zero host code exec).") }
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Opt-In Local Assistance, Learning Reset & Extension Safety (PF-35, N-036..N-038)", fontWeight = FontWeight.SemiBold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = localAssistOptIn,
+                            onCheckedChange = { localAssistOptIn = it },
+                            modifier = Modifier.semantics { contentDescription = "Opt in to local deterministic priority suggestions" },
+                        )
+                        Text("Opt-In Local Ranking (100% offline, zero external AI)")
+                    }
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = { assistEngine.resetLearning(); extStatus = "Local preference weights reset to clean defaults." },
+                            modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Reset local learning preferences" },
+                        ) { Text("Reset Local Learning") }
+                        OutlinedButton(
+                            onClick = {
+                                val (_, msg) = ExtensionCapabilityValidator.validate(
+                                    ExtensionCapabilityManifest("theme-pack-1", "1.0.0", setOf("CUSTOM_THEME", "READ_TEMPLATES"), requestsHostExecution = false)
+                                )
+                                extStatus = msg
+                            },
+                            modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Validate declarative extension manifest" },
+                        ) { Text("Verify Extension Manifest") }
+                    }
+                    Text(extStatus, style = MaterialTheme.typography.bodySmall)
                 }
             }
         }

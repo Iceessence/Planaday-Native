@@ -1,6 +1,7 @@
 package com.planaday.nativeapp.core.syncclient
 
 import com.planaday.nativeapp.core.domain.DomainClock
+import com.planaday.nativeapp.core.domain.SelectiveSyncPolicy
 import com.planaday.nativeapp.core.domain.SystemDomainClock
 import com.planaday.nativeapp.core.model.CanonicalRecord
 import com.planaday.nativeapp.core.model.RecordKind
@@ -56,7 +57,16 @@ class PlanadaySyncClient(
     suspend fun syncWorkspace(
         workspaceId: String,
         allowReplacementReconcile: Boolean = false,
+        selectivePolicy: SelectiveSyncPolicy? = null,
     ): SyncStatusSnapshot {
+        // N-041 invariant: if a workspace is excluded by selective sync policy, skip cleanly WITHOUT generating any DELETE tombstones!
+        if (selectivePolicy != null && !selectivePolicy.shouldSyncWorkspace(workspaceId)) {
+            return buildStatusSnapshot(
+                workspaceId = workspaceId,
+                forcedStatus = SyncHealthStatus.IDLE_OFFLINE,
+                lastError = "Workspace excluded by local SelectiveSyncPolicy (zero records deleted).",
+            )
+        }
         val token = bearerTokenProvider()
             ?: return SyncStatusSnapshot(
                 status = SyncHealthStatus.IDLE_OFFLINE,
